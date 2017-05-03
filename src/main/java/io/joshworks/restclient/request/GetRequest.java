@@ -1,6 +1,7 @@
+/*
 The MIT License
 
-Copyright (c) 2013-2015 Mashape (https://www.mashape.com)
+Copyright (c) 2013 Mashape (http://mashape.com)
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -20,3 +21,38 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
 LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package io.joshworks.restclient.request;
+
+import io.joshworks.restclient.http.HttpMethod;
+
+import java.util.Map;
+
+public class GetRequest extends HttpRequest {
+
+    public GetRequest(HttpMethod method, String url) {
+        super(method, url);
+    }
+
+    public GetRequest routeParam(String name, String value) {
+        super.routeParam(name, value);
+        return this;
+    }
+
+    @Override
+    public GetRequest header(String name, String value) {
+        return (GetRequest) super.header(name, value);
+    }
+
+    @Override
+    public GetRequest headers(Map<String, String> headers) {
+        return (GetRequest) super.headers(headers);
+    }
+
+    @Override
+    public GetRequest basicAuth(String username, String password) {
+        super.basicAuth(username, password);
+        return this;
+    }
+}

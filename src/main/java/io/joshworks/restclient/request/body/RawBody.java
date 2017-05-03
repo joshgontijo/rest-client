@@ -1,6 +1,7 @@
+/*
 The MIT License
 
-Copyright (c) 2013-2015 Mashape (https://www.mashape.com)
+Copyright (c) 2013 Mashape (http://mashape.com)
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -20,3 +21,33 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
 LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package io.joshworks.restclient.request.body;
+
+import io.joshworks.restclient.request.BaseRequest;
+import io.joshworks.restclient.request.HttpRequest;
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.ByteArrayEntity;
+
+public class RawBody extends BaseRequest implements Body {
+
+    private byte[] body;
+
+    public RawBody(HttpRequest httpRequest) {
+        super(httpRequest);
+    }
+
+    public RawBody body(byte[] body) {
+        this.body = body;
+        return this;
+    }
+
+    public Object getBody() {
+        return body;
+    }
+
+    public HttpEntity getEntity() {
+        return new ByteArrayEntity(body);
+    }
+}
