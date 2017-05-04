@@ -25,7 +25,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request;
 
+import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.HttpMethod;
+import io.joshworks.restclient.http.ClientConfig;
 import io.joshworks.restclient.http.utils.Base64Coder;
 import io.joshworks.restclient.http.utils.URLParamEncoder;
 import io.joshworks.restclient.request.body.Body;
@@ -49,9 +51,10 @@ public class HttpRequest extends BaseRequest {
     Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
     private HttpMethod httpMethod;
 
-    public HttpRequest(HttpMethod method, String url) {
-        this.httpMethod = method;
-        this.url = url;
+    public HttpRequest(ClientConfig config) {
+        super(config);
+        this.url = config.url;
+        this.httpMethod = config.httpMethod;
         super.httpRequest = this;
     }
 
@@ -76,7 +79,7 @@ public class HttpRequest extends BaseRequest {
     public HttpRequest header(String name, String value) {
         List<String> list = this.headers.get(name.trim());
         if (list == null) {
-            list = new ArrayList<String>();
+            list = new ArrayList<>();
         }
         list.add(value);
         this.headers.put(name.trim(), list);
@@ -101,16 +104,16 @@ public class HttpRequest extends BaseRequest {
 
     public HttpRequest queryString(String name, Object value) {
         StringBuilder queryString = new StringBuilder();
-        if (this.url.contains("?")) {
-            queryString.append("&");
+        if (this.url.contains(Constants.QUESTION_MARK)) {
+            queryString.append(Constants.AMPERSAND);
         } else {
-            queryString.append("?");
+            queryString.append(Constants.QUESTION_MARK);
         }
         try {
             queryString
-                    .append(URLEncoder.encode(name))
-                    .append("=")
-                    .append(URLEncoder.encode((value == null) ? "" : value.toString(), "UTF-8"));
+                    .append(URLEncoder.encode(name, Constants.UTF_8))
+                    .append(Constants.EQUALS)
+                    .append(URLEncoder.encode((value == null) ? "" : value.toString(), Constants.UTF_8));
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
@@ -141,7 +144,7 @@ public class HttpRequest extends BaseRequest {
 
     public Map<String, List<String>> getHeaders() {
         if (headers == null)
-            return new HashMap<String, List<String>>();
+            return new HashMap<>();
         return headers;
     }
 

@@ -25,14 +25,14 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request;
 
-import io.joshworks.restclient.http.HttpMethod;
+import io.joshworks.restclient.http.ClientConfig;
 
 import java.util.Map;
 
 public class GetRequest extends HttpRequest {
 
-    public GetRequest(HttpMethod method, String url) {
-        super(method, url);
+    public GetRequest(ClientConfig config) {
+        super(config);
     }
 
     public GetRequest routeParam(String name, String value) {

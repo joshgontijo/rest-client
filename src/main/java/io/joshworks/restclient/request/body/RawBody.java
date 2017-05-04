@@ -25,6 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request.body;
 
+import io.joshworks.restclient.http.ClientConfig;
 import io.joshworks.restclient.request.BaseRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
@@ -34,8 +35,9 @@ public class RawBody extends BaseRequest implements Body {
 
     private byte[] body;
 
-    public RawBody(HttpRequest httpRequest) {
-        super(httpRequest);
+    public RawBody(HttpRequest httpRequest, ClientConfig config) {
+        super(config);
+        super.httpRequest = httpRequest;
     }
 
     public RawBody body(byte[] body) {

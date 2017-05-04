@@ -3,6 +3,7 @@
 mvn clean deploy
 mvn release:clean
 git commit -a -m "version bump"
+#TODO add git tag
 git push origin master
 mvn release:prepare
 mvn release:perform

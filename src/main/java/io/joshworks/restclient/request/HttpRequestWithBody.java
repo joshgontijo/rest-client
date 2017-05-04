@@ -25,11 +25,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request;
 
-import io.joshworks.restclient.http.HttpMethod;
 import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.ObjectMapper;
-import com.mashape.unirest.http.options.Option;
-import io.joshworks.restclient.http.options.Options;
+import io.joshworks.restclient.http.ClientConfig;
 import io.joshworks.restclient.request.body.MultipartBody;
 import io.joshworks.restclient.request.body.RawBody;
 import io.joshworks.restclient.request.body.RequestBodyEntity;
@@ -46,8 +44,13 @@ import java.util.Map.Entry;
 
 public class HttpRequestWithBody extends HttpRequest {
 
-    public HttpRequestWithBody(HttpMethod method, String url) {
-        super(method, url);
+    private final ObjectMapper mapper;
+    private final ClientConfig config;
+
+    public HttpRequestWithBody(ClientConfig config) {
+        super(config);
+        this.config = config;
+        this.mapper = config.mapper;
     }
 
     @Override
@@ -83,7 +86,7 @@ public class HttpRequestWithBody extends HttpRequest {
     }
 
     public MultipartBody field(String name, Collection<?> value) {
-        MultipartBody body = new MultipartBody(this).field(name, value);
+        MultipartBody body = new MultipartBody(this, config).field(name, value);
         this.body = body;
         return body;
     }
@@ -97,19 +100,19 @@ public class HttpRequestWithBody extends HttpRequest {
     }
 
     public MultipartBody field(String name, Object value, String contentType) {
-        MultipartBody body = new MultipartBody(this).field(name, (value == null) ? "" : value.toString(), contentType);
+        MultipartBody body = new MultipartBody(this, config).field(name, (value == null) ? "" : value.toString(), contentType);
         this.body = body;
         return body;
     }
 
     public MultipartBody field(String name, File file, String contentType) {
-        MultipartBody body = new MultipartBody(this).field(name, file, contentType);
+        MultipartBody body = new MultipartBody(this, config).field(name, file, contentType);
         this.body = body;
         return body;
     }
 
     public MultipartBody fields(Map<String, Object> parameters) {
-        MultipartBody body = new MultipartBody(this);
+        MultipartBody body = new MultipartBody(this, config);
         if (parameters != null) {
             for (Entry<String, Object> param : parameters.entrySet()) {
                 if (param.getValue() instanceof File) {
@@ -125,7 +128,7 @@ public class HttpRequestWithBody extends HttpRequest {
 
     public MultipartBody field(String name, InputStream stream, ContentType contentType, String fileName) {
         InputStreamBody inputStreamBody = new InputStreamBody(stream, contentType, fileName);
-        MultipartBody body = new MultipartBody(this).field(name, inputStreamBody, true, contentType.toString());
+        MultipartBody body = new MultipartBody(this, config).field(name, inputStreamBody, true, contentType.toString());
         this.body = body;
         return body;
     }
@@ -141,23 +144,21 @@ public class HttpRequestWithBody extends HttpRequest {
     }
 
     public RequestBodyEntity body(String body) {
-        RequestBodyEntity b = new RequestBodyEntity(this).body(body);
+        RequestBodyEntity b = new RequestBodyEntity(this, config).body(body);
         this.body = b;
         return b;
     }
 
     public RequestBodyEntity body(Object body) {
-        ObjectMapper objectMapper = (ObjectMapper) Options.getOption(Option.OBJECT_MAPPER);
-
-        if (objectMapper == null) {
+        if (mapper == null) {
             throw new RuntimeException("Serialization Impossible. Can't find an ObjectMapper implementation.");
         }
 
-        return body(objectMapper.writeValue(body));
+        return body(mapper.writeValue(body));
     }
 
     public RawBody body(byte[] body) {
-        RawBody b = new RawBody(this).body(body);
+        RawBody b = new RawBody(this, config).body(body);
         this.body = b;
         return b;
     }

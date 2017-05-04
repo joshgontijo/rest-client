@@ -25,7 +25,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request.body;
 
+import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.JsonNode;
+import io.joshworks.restclient.http.ClientConfig;
 import io.joshworks.restclient.request.BaseRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
@@ -35,8 +37,9 @@ public class RequestBodyEntity extends BaseRequest implements Body {
 
     private Object body;
 
-    public RequestBodyEntity(HttpRequest httpRequest) {
-        super(httpRequest);
+    public RequestBodyEntity(HttpRequest httpRequest, ClientConfig config) {
+        super(config);
+        super.httpRequest = httpRequest;
     }
 
     public RequestBodyEntity body(String body) {
@@ -54,7 +57,7 @@ public class RequestBodyEntity extends BaseRequest implements Body {
     }
 
     public HttpEntity getEntity() {
-        return new StringEntity(body.toString(), UTF_8);
+        return new StringEntity(body.toString(), Constants.UTF_8);
     }
 
 }

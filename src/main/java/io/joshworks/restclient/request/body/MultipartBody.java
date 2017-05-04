@@ -25,6 +25,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request.body;
 
+import io.joshworks.restclient.Constants;
+import io.joshworks.restclient.http.ClientConfig;
 import io.joshworks.restclient.http.utils.MapUtil;
 import io.joshworks.restclient.request.BaseRequest;
 import io.joshworks.restclient.request.HttpRequest;
@@ -54,12 +56,11 @@ public class MultipartBody extends BaseRequest implements Body {
     private Map<String, ContentType> contentTypes = new HashMap<String, ContentType>();
 
     private boolean hasFile;
-    private HttpRequest httpRequestObj;
     private HttpMultipartMode mode;
 
-    public MultipartBody(HttpRequest httpRequest) {
-        super(httpRequest);
-        this.httpRequestObj = httpRequest;
+    public MultipartBody(HttpRequest httpRequest, ClientConfig config) {
+        super(config);
+        super.httpRequest = httpRequest;
     }
 
     public MultipartBody field(String name, String value) {
@@ -89,17 +90,17 @@ public class MultipartBody extends BaseRequest implements Body {
     public MultipartBody field(String name, Object value, boolean file, String contentType) {
         List<Object> list = parameters.get(name);
         if (list == null)
-            list = new LinkedList<Object>();
+            list = new LinkedList<>();
         list.add(value);
         parameters.put(name, list);
 
-        ContentType type = null;
+        ContentType type;
         if (contentType != null && contentType.length() > 0) {
             type = ContentType.parse(contentType);
         } else if (file) {
             type = ContentType.APPLICATION_OCTET_STREAM;
         } else {
-            type = ContentType.APPLICATION_FORM_URLENCODED.withCharset(UTF_8);
+            type = ContentType.APPLICATION_FORM_URLENCODED.withCharset(Constants.UTF_8);
         }
         contentTypes.put(name, type);
 
@@ -135,7 +136,7 @@ public class MultipartBody extends BaseRequest implements Body {
     }
 
     public MultipartBody basicAuth(String username, String password) {
-        httpRequestObj.basicAuth(username, password);
+        httpRequest.basicAuth(username, password);
         return this;
     }
 
@@ -169,7 +170,7 @@ public class MultipartBody extends BaseRequest implements Body {
             return builder.build();
         } else {
             try {
-                return new UrlEncodedFormEntity(MapUtil.getList(parameters), UTF_8);
+                return new UrlEncodedFormEntity(MapUtil.getList(parameters), Constants.UTF_8);
             } catch (UnsupportedEncodingException e) {
                 throw new RuntimeException(e);
             }

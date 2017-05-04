@@ -1,4 +1,4 @@
-package io.joshworks.restclient.http.async.utils;
+package io.joshworks.restclient.http.async;
 
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 

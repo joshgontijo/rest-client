@@ -257,7 +257,7 @@ HttpResponse<JsonNode> response = Unirest.get("http://httpbin.org/headers").basi
 
 # Request
 
-The Java Unirest library follows the builder style conventions. You start building your request by creating a `HttpRequest` object using one of the following:
+The Java Unirest library follows the configuration style conventions. You start building your request by creating a `HttpRequest` object using one of the following:
 
 ```java
 GetRequest request = Unirest.get(String url);

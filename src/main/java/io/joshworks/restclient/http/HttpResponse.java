@@ -25,8 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.http;
 
-import com.mashape.unirest.http.options.Option;
-import io.joshworks.restclient.http.options.Options;
+import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.utils.ResponseUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -48,17 +47,15 @@ public class HttpResponse<T> {
     private InputStream rawBody;
     private T body;
 
-    @SuppressWarnings("unchecked")
-    public HttpResponse(org.apache.http.HttpResponse response, Class<T> responseClass) {
+    public HttpResponse(org.apache.http.HttpResponse response, Class<T> responseClass, ObjectMapper objectMapper) {
         HttpEntity responseEntity = response.getEntity();
-        ObjectMapper objectMapper = (ObjectMapper) Options.getOption(Option.OBJECT_MAPPER);
 
         Header[] allHeaders = response.getAllHeaders();
         for (Header header : allHeaders) {
             String headerName = header.getName();
             List<String> list = headers.get(headerName);
             if (list == null)
-                list = new ArrayList<String>();
+                list = new ArrayList<>();
             list.add(header.getValue());
             headers.put(headerName, list);
         }
@@ -67,7 +64,7 @@ public class HttpResponse<T> {
         this.statusText = statusLine.getReasonPhrase();
 
         if (responseEntity != null) {
-            String charset = "UTF-8";
+            String charset = Constants.UTF_8;
 
             Header contentType = responseEntity.getContentType();
             if (contentType != null) {

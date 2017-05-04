@@ -1,5 +1,6 @@
 package io.joshworks.restclient.http.utils;
 
+import io.joshworks.restclient.Constants;
 import org.apache.http.Header;
 
 import java.io.ByteArrayInputStream;
@@ -52,7 +53,7 @@ public class ResponseUtils {
     public static boolean isGzipped(Header contentEncoding) {
         if (contentEncoding != null) {
             String value = contentEncoding.getValue();
-            if (value != null && "gzip".equals(value.toLowerCase().trim())) {
+            if (value != null && Constants.GZIP.equals(value.toLowerCase().trim())) {
                 return true;
             }
         }
