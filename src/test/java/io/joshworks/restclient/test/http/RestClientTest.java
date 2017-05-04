@@ -771,6 +771,27 @@ public class RestClientTest {
         headers = request.asJson().getBody().getObject().getJSONObject("headers");
         assertEquals("Marco,John", headers.get("Name"));
     }
+
+
+    @Test
+    public void multipleClients() throws RestClientException, IOException {
+        RestClient client1 = RestClient.newClient().objectMapper(new JacksonObjectMapper()).build();
+        int status = client1.get("http://httpbin.org/get").asString().getStatus();
+        assertEquals(200, status);
+
+        RestClient client2 = RestClient.newClient().objectMapper(new JacksonObjectMapper()).build();
+        status = client2.get("http://httpbin.org/get").asString().getStatus();
+        assertEquals(200, status);
+
+        RestClient client3 = RestClient.newClient().objectMapper(new JacksonObjectMapper()).build();
+        status = client3.get("http://httpbin.org/get").asString().getStatus();
+        assertEquals(200, status);
+
+        client1.shutdown();
+        client2.shutdown();
+        client3.shutdown();
+    }
+
 //
 //    @Test
 //    public void setTimeoutsAndCustomClient() {
