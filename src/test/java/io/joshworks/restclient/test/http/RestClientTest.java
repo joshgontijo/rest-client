@@ -25,6 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.test.http;
 
+import io.joshworks.restclient.http.ClientContainer;
 import io.joshworks.restclient.http.Headers;
 import io.joshworks.restclient.http.HttpResponse;
 import io.joshworks.restclient.http.JsonNode;
@@ -34,13 +35,13 @@ import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import io.joshworks.restclient.test.helper.GetResponse;
-import io.joshworks.restclient.test.helper.JacksonObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -82,7 +83,14 @@ public class RestClientTest {
 
     @After
     public void shutdown() throws IOException {
-        client.shutdown();
+        if (client != null) {
+            client.shutdown();
+        }
+    }
+
+    @AfterClass
+    public static void shutdownContainer() throws IOException {
+        ClientContainer.shutdown();
     }
 
     private String findAvailableIpAddress() throws IOException {
@@ -540,7 +548,7 @@ public class RestClientTest {
     @Test
     public void testSetTimeouts() throws IOException {
         RestClient customClient = null;
-        try{
+        try {
             int timeout = 2000;
             customClient = RestClient.newClient().timeouts(timeout, 10000).build();
             String address = "http://" + findAvailableIpAddress() + "/";
@@ -553,7 +561,7 @@ public class RestClientTest {
                 }
             }
 
-        }finally {
+        } finally {
             customClient.shutdown();
         }
 
@@ -599,20 +607,20 @@ public class RestClientTest {
     public void parallelTest() throws Exception {
         RestClient firstClient = null;
         RestClient secondClient = null;
-        try{
-            firstClient = RestClient.newClient().concurrency(10,5).build();
+        try {
+            firstClient = RestClient.newClient().concurrency(10, 5).build();
 
             long start = System.currentTimeMillis();
             makeParallelRequests(firstClient);
             long smallerConcurrencyTime = (System.currentTimeMillis() - start);
 
-            secondClient = RestClient.newClient().concurrency(200,20).build();
+            secondClient = RestClient.newClient().concurrency(200, 20).build();
             start = System.currentTimeMillis();
             makeParallelRequests(secondClient);
             long higherConcurrencyTime = (System.currentTimeMillis() - start);
 
             assertTrue(higherConcurrencyTime < smallerConcurrencyTime);
-        }finally {
+        } finally {
             firstClient.shutdown();
             secondClient.shutdown();
         }
@@ -775,15 +783,15 @@ public class RestClientTest {
 
     @Test
     public void multipleClients() throws RestClientException, IOException {
-        RestClient client1 = RestClient.newClient().objectMapper(new JacksonObjectMapper()).build();
+        RestClient client1 = RestClient.newClient().build();
         int status = client1.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
 
-        RestClient client2 = RestClient.newClient().objectMapper(new JacksonObjectMapper()).build();
+        RestClient client2 = RestClient.newClient().build();
         status = client2.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
 
-        RestClient client3 = RestClient.newClient().objectMapper(new JacksonObjectMapper()).build();
+        RestClient client3 = RestClient.newClient().build();
         status = client3.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
 
@@ -828,7 +836,7 @@ public class RestClientTest {
     public void testObjectMapperRead() throws RestClientException, IOException {
         RestClient customClient = null;
         try {
-            customClient = RestClient.newClient().objectMapper(new JacksonObjectMapper()).build();
+            customClient = RestClient.newClient().build();
             GetResponse getResponseMock = new GetResponse();
             getResponseMock.setUrl("http://httpbin.org/get");
 
@@ -836,7 +844,7 @@ public class RestClientTest {
 
             assertEquals(200, getResponse.getStatus());
             assertEquals(getResponse.getBody().getUrl(), getResponseMock.getUrl());
-        }finally {
+        } finally {
             customClient.shutdown();
         }
     }
@@ -845,7 +853,7 @@ public class RestClientTest {
     public void testObjectMapperWrite() throws RestClientException, IOException {
         RestClient customClient = null;
         try {
-            customClient = RestClient.newClient().objectMapper(new JacksonObjectMapper()).build();
+            customClient = RestClient.newClient().build();
 
             GetResponse postResponseMock = new GetResponse();
             postResponseMock.setUrl("http://httpbin.org/post");
@@ -858,7 +866,7 @@ public class RestClientTest {
 
             assertEquals(200, postResponse.getStatus());
             assertEquals(postResponse.getBody().getObject().getString("data"), "{\"url\":\"http://httpbin.org/post\"}");
-        }finally {
+        } finally {
             customClient.shutdown();
         }
 

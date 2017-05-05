@@ -25,14 +25,13 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request;
 
+import io.joshworks.restclient.http.ClientConfig;
 import io.joshworks.restclient.http.HttpClientHelper;
 import io.joshworks.restclient.http.HttpResponse;
 import io.joshworks.restclient.http.JsonNode;
-import io.joshworks.restclient.http.ObjectMapper;
-import io.joshworks.restclient.http.ClientConfig;
 import io.joshworks.restclient.http.async.Callback;
-import io.joshworks.restclient.http.async.AsyncIdleConnectionMonitorThread;
 import io.joshworks.restclient.http.exceptions.RestClientException;
+import io.joshworks.restclient.http.mapper.ObjectMapper;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 
@@ -48,14 +47,12 @@ public abstract class BaseRequest {
     private final CloseableHttpAsyncClient asyncClient;
     private final Map<String, Object> defaultHeaders;
     private final ObjectMapper mapper;
-    private AsyncIdleConnectionMonitorThread monitor;
 
     protected BaseRequest(ClientConfig config) {
         this.syncClient = config.syncClient;
         this.asyncClient = config.asyncClient;
         this.defaultHeaders = config.defaultHeaders;
         this.mapper = config.mapper;
-        this.monitor = config.monitor;
     }
 
 
@@ -68,11 +65,11 @@ public abstract class BaseRequest {
     }
 
     public Future<HttpResponse<String>> asStringAsync() {
-        return HttpClientHelper.requestAsync(httpRequest, String.class, null, asyncClient, defaultHeaders, mapper, monitor);
+        return HttpClientHelper.requestAsync(httpRequest, String.class, null, asyncClient, defaultHeaders, mapper);
     }
 
     public Future<HttpResponse<String>> asStringAsync(Callback<String> callback) {
-        return HttpClientHelper.requestAsync(httpRequest, String.class, callback, asyncClient, defaultHeaders, mapper, monitor);
+        return HttpClientHelper.requestAsync(httpRequest, String.class, callback, asyncClient, defaultHeaders, mapper);
     }
 
     public HttpResponse<JsonNode> asJson() throws RestClientException {
@@ -80,11 +77,11 @@ public abstract class BaseRequest {
     }
 
     public Future<HttpResponse<JsonNode>> asJsonAsync() {
-        return HttpClientHelper.requestAsync(httpRequest, JsonNode.class, null, asyncClient, defaultHeaders, mapper, monitor);
+        return HttpClientHelper.requestAsync(httpRequest, JsonNode.class, null, asyncClient, defaultHeaders, mapper);
     }
 
     public Future<HttpResponse<JsonNode>> asJsonAsync(Callback<JsonNode> callback) {
-        return HttpClientHelper.requestAsync(httpRequest, JsonNode.class, callback, asyncClient, defaultHeaders, mapper, monitor);
+        return HttpClientHelper.requestAsync(httpRequest, JsonNode.class, callback, asyncClient, defaultHeaders, mapper);
     }
 
     public <T> HttpResponse<T> asObject(Class<? extends T> responseClass) throws RestClientException {
@@ -92,11 +89,11 @@ public abstract class BaseRequest {
     }
 
     public <T> Future<HttpResponse<T>> asObjectAsync(Class<? extends T> responseClass) {
-        return HttpClientHelper.requestAsync(httpRequest, (Class) responseClass, null, asyncClient, defaultHeaders, mapper, monitor);
+        return HttpClientHelper.requestAsync(httpRequest, (Class) responseClass, null, asyncClient, defaultHeaders, mapper);
     }
 
     public <T> Future<HttpResponse<T>> asObjectAsync(Class<? extends T> responseClass, Callback<T> callback) {
-        return HttpClientHelper.requestAsync(httpRequest, (Class) responseClass, callback,asyncClient, defaultHeaders, mapper, monitor);
+        return HttpClientHelper.requestAsync(httpRequest, (Class) responseClass, callback,asyncClient, defaultHeaders, mapper);
     }
 
     public HttpResponse<InputStream> asBinary() throws RestClientException {
@@ -104,11 +101,11 @@ public abstract class BaseRequest {
     }
 
     public Future<HttpResponse<InputStream>> asBinaryAsync() {
-        return HttpClientHelper.requestAsync(httpRequest, InputStream.class, null, asyncClient, defaultHeaders, mapper, monitor);
+        return HttpClientHelper.requestAsync(httpRequest, InputStream.class, null, asyncClient, defaultHeaders, mapper);
     }
 
     public Future<HttpResponse<InputStream>> asBinaryAsync(Callback<InputStream> callback) {
-        return HttpClientHelper.requestAsync(httpRequest, InputStream.class, callback, asyncClient, defaultHeaders, mapper, monitor);
+        return HttpClientHelper.requestAsync(httpRequest, InputStream.class, callback, asyncClient, defaultHeaders, mapper);
     }
 
 }

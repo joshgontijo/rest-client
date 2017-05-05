@@ -25,10 +25,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.http;
 
-import io.joshworks.restclient.http.async.AsyncIdleConnectionMonitorThread;
-import io.joshworks.restclient.http.utils.SyncIdleConnectionMonitorThread;
+import io.joshworks.restclient.http.mapper.JsonMapper;
+import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequestWithBody;
+import net.jodah.failsafe.RetryPolicy;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -39,17 +40,27 @@ import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.reactor.IOReactorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class RestClient {
 
-    private final Configuration configuration;
+    private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
+
+    private static final int MAX_IDLE = 30;
+
+    final Configuration configuration;
+    final String id;
 
     private RestClient(Configuration configuration) {
         this.configuration = configuration;
+        this.id = UUID.randomUUID().toString().substring(0, 8);
     }
 
     public static Configuration newClient() {
@@ -84,6 +95,14 @@ public class RestClient {
         return new HttpRequestWithBody(new ClientConfig(HttpMethod.PUT, url, configuration));
     }
 
+    void closeIdleConnections() {
+        configuration.asyncConnectionManager.closeExpiredConnections();
+        configuration.asyncConnectionManager.closeIdleConnections(MAX_IDLE, TimeUnit.SECONDS);
+
+        configuration.syncConnectionManager.closeExpiredConnections();
+        configuration.syncConnectionManager.closeIdleConnections(MAX_IDLE, TimeUnit.SECONDS);
+    }
+
     /**
      * Close the asynchronous client and its event loop. Use this method to close all the threads and allow an application to exit.
      */
@@ -94,21 +113,13 @@ public class RestClient {
             syncClient.close();
         }
 
-        SyncIdleConnectionMonitorThread syncIdleConnectionMonitorThread = configuration.getSyncIdleConnectionMonitorThread();
-        if (syncIdleConnectionMonitorThread != null) {
-            syncIdleConnectionMonitorThread.interrupt();
-        }
-
         // Closing the Async HTTP client (if running)
         CloseableHttpAsyncClient asyncClient = configuration.getAsyncClient();
         if (asyncClient != null && asyncClient.isRunning()) {
             asyncClient.close();
         }
 
-        AsyncIdleConnectionMonitorThread asyncMonitorThread = configuration.getAsyncIdleConnectionMonitorThread();
-        if (asyncMonitorThread != null) {
-            asyncMonitorThread.interrupt();
-        }
+        ClientContainer.removeClient(this);
     }
 
     public static class Configuration {
@@ -122,15 +133,18 @@ public class RestClient {
         private int maxTotal = 200;
         private int maxPerRoute = 20;
 
-        private ObjectMapper objectMapper;
+        private ObjectMapper objectMapper = new JsonMapper();
         private HttpHost proxy;
-        private SyncIdleConnectionMonitorThread syncIdleConnectionMonitorThread;
-        private AsyncIdleConnectionMonitorThread asyncIdleConnectionMonitorThread;
+        private PoolingNHttpClientConnectionManager asyncConnectionManager;
+        private PoolingHttpClientConnectionManager syncConnectionManager;
 
         private Map<String, Object> defaultHeaders = new HashMap<>();
 
         private CloseableHttpAsyncClient asyncClient;
         private CloseableHttpClient syncClient;
+
+        //failsafe
+        private RetryPolicy retryPolicy;
 
         public RestClient build() {
             // Create common default configuration
@@ -141,7 +155,7 @@ public class RestClient {
                     .setProxy(proxy)
                     .build();
 
-            PoolingHttpClientConnectionManager syncConnectionManager = new PoolingHttpClientConnectionManager();
+            syncConnectionManager = new PoolingHttpClientConnectionManager();
             syncConnectionManager.setMaxTotal(maxTotal);
             syncConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
 
@@ -154,11 +168,7 @@ public class RestClient {
                         .build();
             }
 
-            this.syncIdleConnectionMonitorThread = new SyncIdleConnectionMonitorThread(syncConnectionManager);
-            syncIdleConnectionMonitorThread.start();
 
-
-            PoolingNHttpClientConnectionManager asyncConnectionManager;
             try {
                 DefaultConnectingIOReactor ioreactor = new DefaultConnectingIOReactor();
                 asyncConnectionManager = new PoolingNHttpClientConnectionManager(ioreactor);
@@ -175,9 +185,9 @@ public class RestClient {
                         .build();
             }
 
-            this.asyncIdleConnectionMonitorThread = new AsyncIdleConnectionMonitorThread(asyncConnectionManager);
-
-            return new RestClient(this);
+            RestClient restClient = new RestClient(this);
+            ClientContainer.addClient(restClient);
+            return restClient;
         }
 
 
@@ -249,13 +259,12 @@ public class RestClient {
             return this;
         }
 
-
-        SyncIdleConnectionMonitorThread getSyncIdleConnectionMonitorThread() {
-            return syncIdleConnectionMonitorThread;
+        PoolingNHttpClientConnectionManager getAsyncConnectionManager() {
+            return asyncConnectionManager;
         }
 
-        AsyncIdleConnectionMonitorThread getAsyncIdleConnectionMonitorThread() {
-            return asyncIdleConnectionMonitorThread;
+        PoolingHttpClientConnectionManager getSyncConnectionManager() {
+            return syncConnectionManager;
         }
 
         Map<String, Object> getDefaultHeaders() {

@@ -26,6 +26,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.joshworks.restclient.http;
 
 import io.joshworks.restclient.Constants;
+import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.http.utils.ResponseUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;

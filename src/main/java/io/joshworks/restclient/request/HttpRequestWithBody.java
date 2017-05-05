@@ -26,7 +26,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.joshworks.restclient.request;
 
 import io.joshworks.restclient.http.JsonNode;
-import io.joshworks.restclient.http.ObjectMapper;
+import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.http.ClientConfig;
 import io.joshworks.restclient.request.body.MultipartBody;
 import io.joshworks.restclient.request.body.RawBody;

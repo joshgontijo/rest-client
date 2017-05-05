@@ -1,4 +1,4 @@
-package io.joshworks.restclient.http;
+package io.joshworks.restclient.http.mapper;
 
 public interface ObjectMapper {
 

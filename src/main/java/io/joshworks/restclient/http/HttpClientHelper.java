@@ -26,9 +26,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.joshworks.restclient.http;
 
 import io.joshworks.restclient.Constants;
-import io.joshworks.restclient.http.async.AsyncIdleConnectionMonitorThread;
 import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
+import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
@@ -95,14 +95,12 @@ public class HttpClientHelper {
             Callback<T> callback,
             CloseableHttpAsyncClient asyncHttpClient,
             Map<String, Object> defaultHeaders,
-            final ObjectMapper objectMapper,
-            AsyncIdleConnectionMonitorThread monitor) {
+            final ObjectMapper objectMapper) {
 
         HttpUriRequest requestObj = prepareRequest(request, true, defaultHeaders);
 
         if (!asyncHttpClient.isRunning()) {
             asyncHttpClient.start();
-            monitor.start();
         }
 
         final Future<org.apache.http.HttpResponse> future = asyncHttpClient.execute(requestObj, prepareCallback(responseClass, callback, objectMapper));

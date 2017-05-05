@@ -1,6 +1,6 @@
 package io.joshworks.restclient.http;
 
-import io.joshworks.restclient.http.async.AsyncIdleConnectionMonitorThread;
+import io.joshworks.restclient.http.mapper.ObjectMapper;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 
@@ -15,7 +15,6 @@ public class ClientConfig {
     public final CloseableHttpAsyncClient asyncClient;
     public final Map<String, Object> defaultHeaders;
     public final ObjectMapper mapper;
-    public final AsyncIdleConnectionMonitorThread monitor;
     public final String url;
     public final HttpMethod httpMethod;
 
@@ -25,7 +24,6 @@ public class ClientConfig {
         this.asyncClient = builder.getAsyncClient();
         this.defaultHeaders = builder.getDefaultHeaders();
         this.mapper = builder.getObjectMapper();
-        this.monitor = builder.getAsyncIdleConnectionMonitorThread();
         this.url = url;
         this.httpMethod = httpMethod;
     }
