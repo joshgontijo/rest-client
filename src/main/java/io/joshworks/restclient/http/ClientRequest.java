@@ -1,28 +1,3 @@
-/*
-The MIT License
-
-Copyright (c) 2013 Mashape (http://mashape.com)
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-
 package io.joshworks.restclient.http;
 
 import io.joshworks.restclient.Constants;
@@ -51,14 +26,33 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class HttpClientHelper {
+/**
+ * Created by Josh Gontijo on 5/3/17.
+ */
+public class ClientRequest {
+
+    private final CloseableHttpClient syncClient;
+    private final CloseableHttpAsyncClient asyncClient;
+    private final Map<String, Object> defaultHeaders;
+    public final ObjectMapper objectMapper;
+    public final String url;
+    public final HttpMethod httpMethod;
+
+    ClientRequest(HttpMethod httpMethod, String url, RestClient.Configuration config) {
+
+        this.syncClient = config.getSyncClient();
+        this.asyncClient = config.getAsyncClient();
+        this.defaultHeaders = config.getDefaultHeaders();
+        this.objectMapper = config.getObjectMapper();
+        this.url = url;
+        this.httpMethod = httpMethod;
+    }
 
     private static final String CONTENT_TYPE = "content-type";
     private static final String ACCEPT_ENCODING_HEADER = "accept-encoding";
@@ -89,21 +83,18 @@ public class HttpClientHelper {
         };
     }
 
-    public static <T> Future<HttpResponse<T>> requestAsync(
+    public <T> Future<HttpResponse<T>> requestAsync(
             HttpRequest request,
             final Class<T> responseClass,
-            Callback<T> callback,
-            CloseableHttpAsyncClient asyncHttpClient,
-            Map<String, Object> defaultHeaders,
-            final ObjectMapper objectMapper) {
+            Callback<T> callback) {
 
-        HttpUriRequest requestObj = prepareRequest(request, true, defaultHeaders);
+        HttpUriRequest requestObj = prepareRequest(request, true);
 
-        if (!asyncHttpClient.isRunning()) {
-            asyncHttpClient.start();
+        if (!asyncClient.isRunning()) {
+            asyncClient.start();
         }
 
-        final Future<org.apache.http.HttpResponse> future = asyncHttpClient.execute(requestObj, prepareCallback(responseClass, callback, objectMapper));
+        final Future<org.apache.http.HttpResponse> future = asyncClient.execute(requestObj, prepareCallback(responseClass, callback, objectMapper));
 
         return new Future<HttpResponse<T>>() {
 
@@ -131,14 +122,13 @@ public class HttpClientHelper {
         };
     }
 
-    public static <T> HttpResponse<T> request(HttpRequest request, Class<T> responseClass, CloseableHttpClient httpClient,
-                                              Map<String, Object> defaultHeaders, final ObjectMapper objectMapper) {
+    public <T> HttpResponse<T> request(HttpRequest request, Class<T> responseClass) {
 
-        HttpRequestBase requestObj = prepareRequest(request, false, defaultHeaders);
+        HttpRequestBase requestObj = prepareRequest(request, false);
 
         org.apache.http.HttpResponse response;
         try {
-            response = httpClient.execute(requestObj);
+            response = syncClient.execute(requestObj);
             HttpResponse<T> httpResponse = new HttpResponse<>(response, responseClass, objectMapper);
             requestObj.releaseConnection();
             return httpResponse;
@@ -149,10 +139,10 @@ public class HttpClientHelper {
         }
     }
 
-    private static HttpRequestBase prepareRequest(HttpRequest request, boolean async, Map<String, Object> defaultHeaders) {
+    private HttpRequestBase prepareRequest(HttpRequest request, boolean async) {
 
         if (defaultHeaders != null) {
-            for (Entry<String, Object> entry : defaultHeaders.entrySet()) {
+            for (Map.Entry<String, Object> entry : defaultHeaders.entrySet()) {
                 request.header(entry.getKey(), String.valueOf(entry.getValue()));
             }
         }
@@ -207,8 +197,8 @@ public class HttpClientHelper {
                 break;
         }
 
-        Set<Entry<String, List<String>>> entrySet = request.getHeaders().entrySet();
-        for (Entry<String, List<String>> entry : entrySet) {
+        Set<Map.Entry<String, List<String>>> entrySet = request.getHeaders().entrySet();
+        for (Map.Entry<String, List<String>> entry : entrySet) {
             List<String> values = entry.getValue();
             if (values != null) {
                 for (String value : values) {
@@ -241,5 +231,4 @@ public class HttpClientHelper {
 
         return reqObj;
     }
-
 }

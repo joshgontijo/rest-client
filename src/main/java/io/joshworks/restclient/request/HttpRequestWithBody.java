@@ -27,7 +27,7 @@ package io.joshworks.restclient.request;
 
 import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
-import io.joshworks.restclient.http.ClientConfig;
+import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.request.body.MultipartBody;
 import io.joshworks.restclient.request.body.RawBody;
 import io.joshworks.restclient.request.body.RequestBodyEntity;
@@ -45,12 +45,12 @@ import java.util.Map.Entry;
 public class HttpRequestWithBody extends HttpRequest {
 
     private final ObjectMapper mapper;
-    private final ClientConfig config;
+    private final ClientRequest config;
 
-    public HttpRequestWithBody(ClientConfig config) {
-        super(config);
-        this.config = config;
-        this.mapper = config.mapper;
+    public HttpRequestWithBody(ClientRequest clientRequest) {
+        super(clientRequest);
+        this.config = clientRequest;
+        this.mapper = clientRequest.objectMapper;
     }
 
     @Override

@@ -68,31 +68,31 @@ public class RestClient {
     }
 
     public GetRequest get(String url) {
-        return new GetRequest(new ClientConfig(HttpMethod.GET, url, configuration));
+        return new GetRequest(new ClientRequest(HttpMethod.GET, url, configuration));
     }
 
     public GetRequest head(String url) {
-        return new GetRequest(new ClientConfig(HttpMethod.HEAD, url, configuration));
+        return new GetRequest(new ClientRequest(HttpMethod.HEAD, url, configuration));
     }
 
     public HttpRequestWithBody options(String url) {
-        return new HttpRequestWithBody(new ClientConfig(HttpMethod.OPTIONS, url, configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.OPTIONS, url, configuration));
     }
 
     public HttpRequestWithBody post(String url) {
-        return new HttpRequestWithBody(new ClientConfig(HttpMethod.POST, url, configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.POST, url, configuration));
     }
 
     public HttpRequestWithBody delete(String url) {
-        return new HttpRequestWithBody(new ClientConfig(HttpMethod.DELETE, url, configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.DELETE, url, configuration));
     }
 
     public HttpRequestWithBody patch(String url) {
-        return new HttpRequestWithBody(new ClientConfig(HttpMethod.PATCH, url, configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PATCH, url, configuration));
     }
 
     public HttpRequestWithBody put(String url) {
-        return new HttpRequestWithBody(new ClientConfig(HttpMethod.PUT, url, configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PUT, url, configuration));
     }
 
     void closeIdleConnections() {

@@ -26,7 +26,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.joshworks.restclient.request.body;
 
 import io.joshworks.restclient.Constants;
-import io.joshworks.restclient.http.ClientConfig;
+import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.utils.MapUtil;
 import io.joshworks.restclient.request.BaseRequest;
 import io.joshworks.restclient.request.HttpRequest;
@@ -58,7 +58,7 @@ public class MultipartBody extends BaseRequest implements Body {
     private boolean hasFile;
     private HttpMultipartMode mode;
 
-    public MultipartBody(HttpRequest httpRequest, ClientConfig config) {
+    public MultipartBody(HttpRequest httpRequest, ClientRequest config) {
         super(config);
         super.httpRequest = httpRequest;
     }

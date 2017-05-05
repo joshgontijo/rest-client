@@ -27,7 +27,7 @@ package io.joshworks.restclient.request.body;
 
 import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.JsonNode;
-import io.joshworks.restclient.http.ClientConfig;
+import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.request.BaseRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
@@ -37,7 +37,7 @@ public class RequestBodyEntity extends BaseRequest implements Body {
 
     private Object body;
 
-    public RequestBodyEntity(HttpRequest httpRequest, ClientConfig config) {
+    public RequestBodyEntity(HttpRequest httpRequest, ClientRequest config) {
         super(config);
         super.httpRequest = httpRequest;
     }

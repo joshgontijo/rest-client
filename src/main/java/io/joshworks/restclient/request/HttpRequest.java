@@ -27,7 +27,7 @@ package io.joshworks.restclient.request;
 
 import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.HttpMethod;
-import io.joshworks.restclient.http.ClientConfig;
+import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.utils.Base64Coder;
 import io.joshworks.restclient.http.utils.URLParamEncoder;
 import io.joshworks.restclient.request.body.Body;
@@ -51,7 +51,7 @@ public class HttpRequest extends BaseRequest {
     Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
     private HttpMethod httpMethod;
 
-    public HttpRequest(ClientConfig config) {
+    public HttpRequest(ClientRequest config) {
         super(config);
         this.url = config.url;
         this.httpMethod = config.httpMethod;
