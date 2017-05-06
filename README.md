@@ -117,26 +117,26 @@ HttpResponse<JsonNode> postResponse = client.post("http://httpbin.org/authors/po
 
 # Configuration API
 
-
-You can explicitly set your own `HttpClient` and `HttpAsyncClient` implementations by using the following methods:
+Use the configuration api to configure a single client instance.
 
 ```java
-        defaultHeader(String key, String value);
-        defaultHeader(String key, long value);
         
-        httpClient(CloseableHttpClient httpClient); 
-        asyncHttpClient(CloseableHttpAsyncClient asyncHttpClient);
+        RestClient.newClient()
+            .defaultHeader(String key, String value)
+            .defaultHeader(String key, long value)
+        
+            .httpClient(CloseableHttpClient httpClient)
+            .asyncHttpClient(CloseableHttpAsyncClient asyncHttpClient)
 
-        proxy(HttpHost proxy);
+            .proxy(HttpHost proxy)
 
+            .objectMapper(ObjectMapper objectMapper)
       
-        objectMapper(ObjectMapper objectMapper);
-      
-        timeouts(int connectionTimeout, int socketTimeout);
-        concurrency(int maxTotal);
+            .timeouts(int connectionTimeout, int socketTimeout)
+            .concurrency(int maxTotal)
 
-        //Failsafe
-        retryPolicy(RetryPolicy retryPolicy);
+            //Failsafe
+            .retryPolicy(RetryPolicy retryPolicy)
 ```
 
 # Exiting an application
@@ -145,9 +145,10 @@ RestClient starts a background idle thread monitor, which is a daemon thread.
 Always close the clients on application exit.
 
 ```java
+//If a client is no longer needed and you want to dispose its resources
 client.shutdown();
-//or alternatively use:
 
+//When your application is shutting down:
 ClientContainer.shutdown();
 
 ```
