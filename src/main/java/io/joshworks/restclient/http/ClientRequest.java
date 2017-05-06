@@ -5,6 +5,8 @@ import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.HttpRequest;
+import net.jodah.failsafe.Failsafe;
+import net.jodah.failsafe.RetryPolicy;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
@@ -44,6 +46,9 @@ public class ClientRequest {
     public final String url;
     public final HttpMethod httpMethod;
 
+    //failsafe
+    private final RetryPolicy retryPolicy;
+
     ClientRequest(HttpMethod httpMethod, String url, RestClient.Configuration config) {
 
         this.syncClient = config.getSyncClient();
@@ -52,6 +57,7 @@ public class ClientRequest {
         this.objectMapper = config.getObjectMapper();
         this.url = url;
         this.httpMethod = httpMethod;
+        this.retryPolicy = config.getRetryPolicy();
     }
 
     private static final String CONTENT_TYPE = "content-type";
@@ -125,18 +131,21 @@ public class ClientRequest {
     public <T> HttpResponse<T> request(HttpRequest request, Class<T> responseClass) {
 
         HttpRequestBase requestObj = prepareRequest(request, false);
+        return Failsafe.with(retryPolicy).get(() -> {
+            org.apache.http.HttpResponse response;
+            try {
 
-        org.apache.http.HttpResponse response;
-        try {
-            response = syncClient.execute(requestObj);
-            HttpResponse<T> httpResponse = new HttpResponse<>(response, responseClass, objectMapper);
-            requestObj.releaseConnection();
-            return httpResponse;
-        } catch (Exception e) {
-            throw new RestClientException(e);
-        } finally {
-            requestObj.releaseConnection();
-        }
+                response = syncClient.execute(requestObj);
+                HttpResponse<T> httpResponse = new HttpResponse<>(response, responseClass, objectMapper);
+                requestObj.releaseConnection();
+                return httpResponse;
+            } catch (Exception e) {
+                throw new RestClientException(e);
+            } finally {
+                requestObj.releaseConnection();
+            }
+        });
+
     }
 
     private HttpRequestBase prepareRequest(HttpRequest request, boolean async) {

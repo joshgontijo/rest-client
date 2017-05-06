@@ -35,6 +35,7 @@ import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import io.joshworks.restclient.test.helper.GetResponse;
+import io.joshworks.restclient.test.helper.JsonMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
@@ -853,7 +854,9 @@ public class RestClientTest {
     public void testObjectMapperWrite() throws RestClientException, IOException {
         RestClient customClient = null;
         try {
-            customClient = RestClient.newClient().build();
+            customClient = RestClient.newClient()
+                    .objectMapper(new JsonMapper())
+                    .build();
 
             GetResponse postResponseMock = new GetResponse();
             postResponseMock.setUrl("http://httpbin.org/post");

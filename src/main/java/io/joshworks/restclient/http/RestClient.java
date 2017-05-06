@@ -25,7 +25,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.http;
 
-import io.joshworks.restclient.http.mapper.JsonMapper;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequestWithBody;
@@ -53,9 +52,9 @@ public class RestClient {
 
     private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
 
-    private static final int MAX_IDLE = 30;
+    private static final int IDLE_CONNECTION_TIMEOUT = 30;
 
-    final Configuration configuration;
+    private final Configuration configuration;
     final String id;
 
     private RestClient(Configuration configuration) {
@@ -97,10 +96,10 @@ public class RestClient {
 
     void closeIdleConnections() {
         configuration.asyncConnectionManager.closeExpiredConnections();
-        configuration.asyncConnectionManager.closeIdleConnections(MAX_IDLE, TimeUnit.SECONDS);
+        configuration.asyncConnectionManager.closeIdleConnections(IDLE_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
 
         configuration.syncConnectionManager.closeExpiredConnections();
-        configuration.syncConnectionManager.closeIdleConnections(MAX_IDLE, TimeUnit.SECONDS);
+        configuration.syncConnectionManager.closeIdleConnections(IDLE_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
     }
 
     /**
@@ -130,10 +129,10 @@ public class RestClient {
 
         private int connectionTimeout = 10000;
         private int socketTimeout = 60000;
-        private int maxTotal = 200;
-        private int maxPerRoute = 20;
+        private int maxTotal = 20;
+//        private int maxPerRoute = 20;
 
-        private ObjectMapper objectMapper = new JsonMapper();
+        private ObjectMapper objectMapper;
         private HttpHost proxy;
         private PoolingNHttpClientConnectionManager asyncConnectionManager;
         private PoolingHttpClientConnectionManager syncConnectionManager;
@@ -157,7 +156,7 @@ public class RestClient {
 
             syncConnectionManager = new PoolingHttpClientConnectionManager();
             syncConnectionManager.setMaxTotal(maxTotal);
-            syncConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
+//            syncConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
 
 
             //default client
@@ -173,7 +172,7 @@ public class RestClient {
                 DefaultConnectingIOReactor ioreactor = new DefaultConnectingIOReactor();
                 asyncConnectionManager = new PoolingNHttpClientConnectionManager(ioreactor);
                 asyncConnectionManager.setMaxTotal(maxTotal);
-                asyncConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
+//                asyncConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
             } catch (IOReactorException e) {
                 throw new RuntimeException(e);
             }
@@ -247,24 +246,31 @@ public class RestClient {
             return this;
         }
 
+//        /**
+//         * Set the concurrency levels
+//         *
+//         * @param maxTotal    Defines the overall connection limit for a connection pool. Default is 200.
+//         * @param maxPerRoute Defines a connection limit per one HTTP route (this can be considered a per target host limit). Default is 20.
+//         */
+//        public Configuration concurrency(int maxTotal, int maxPerRoute) {
+//            this.maxTotal = maxTotal;
+//            this.maxPerRoute = maxPerRoute;
+//            return this;
+//        }
+
         /**
          * Set the concurrency levels
          *
-         * @param maxTotal    Defines the overall connection limit for a connection pool. Default is 200.
-         * @param maxPerRoute Defines a connection limit per one HTTP route (this can be considered a per target host limit). Default is 20.
+         * @param maxTotal    Defines the overall connection limit for a connection pool. Default is 20.
          */
-        public Configuration concurrency(int maxTotal, int maxPerRoute) {
+        public Configuration concurrency(int maxTotal) {
             this.maxTotal = maxTotal;
-            this.maxPerRoute = maxPerRoute;
             return this;
         }
 
-        PoolingNHttpClientConnectionManager getAsyncConnectionManager() {
-            return asyncConnectionManager;
-        }
-
-        PoolingHttpClientConnectionManager getSyncConnectionManager() {
-            return syncConnectionManager;
+        public Configuration retryPolicy(RetryPolicy retryPolicy) {
+            this.retryPolicy = retryPolicy;
+            return this;
         }
 
         Map<String, Object> getDefaultHeaders() {
@@ -281,6 +287,10 @@ public class RestClient {
 
         ObjectMapper getObjectMapper() {
             return objectMapper;
+        }
+
+        public RetryPolicy getRetryPolicy() {
+            return retryPolicy;
         }
     }
 
