@@ -68,7 +68,7 @@ HttpClient sync and async client.
 
 ```java
 
- RestClient client = RestClient.newClient().build();
+RestClient client = RestClient.newClient().build();
 
 ```
 

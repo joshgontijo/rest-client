@@ -36,6 +36,7 @@ import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import io.joshworks.restclient.test.helper.GetResponse;
 import io.joshworks.restclient.test.helper.JsonMapper;
+import net.jodah.failsafe.RetryPolicy;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
@@ -609,13 +610,13 @@ public class RestClientTest {
         RestClient firstClient = null;
         RestClient secondClient = null;
         try {
-            firstClient = RestClient.newClient().concurrency(10, 5).build();
+            firstClient = RestClient.newClient().concurrency(10).build();
 
             long start = System.currentTimeMillis();
             makeParallelRequests(firstClient);
             long smallerConcurrencyTime = (System.currentTimeMillis() - start);
 
-            secondClient = RestClient.newClient().concurrency(200, 20).build();
+            secondClient = RestClient.newClient().concurrency(20).build();
             start = System.currentTimeMillis();
             makeParallelRequests(secondClient);
             long higherConcurrencyTime = (System.currentTimeMillis() - start);
@@ -632,13 +633,11 @@ public class RestClientTest {
         ExecutorService newFixedThreadPool = Executors.newFixedThreadPool(10);
         final AtomicInteger counter = new AtomicInteger(0);
         for (int i = 0; i < 200; i++) {
-            newFixedThreadPool.execute(new Runnable() {
-                public void run() {
-                    try {
-                        restClient.get("http://httpbin.org/get").queryString("index", counter.incrementAndGet()).asJson();
-                    } catch (RestClientException e) {
-                        throw new RuntimeException(e);
-                    }
+            newFixedThreadPool.execute(() -> {
+                try {
+                    restClient.get("http://httpbin.org/get").queryString("index", counter.incrementAndGet()).asJson();
+                } catch (RestClientException e) {
+                    throw new RuntimeException(e);
                 }
             });
         }
@@ -801,6 +800,27 @@ public class RestClientTest {
         client3.shutdown();
     }
 
+    @Test
+    public void retry() throws RestClientException, IOException {
+        RestClient retryClient = RestClient.newClient()
+                .retryPolicy(new RetryPolicy().withMaxRetries(2))
+                .build();
+        int status = retryClient.get("http://dummy-url.abc").asString().getStatus();
+        assertEquals(200, status);
+    }
+
+    @Test
+    public void circuitBreaker() throws RestClientException, IOException {
+        String fallback = "FALLBACK-DATA";
+        RestClient retryClient = RestClient.newClient().build();
+
+        HttpResponse<String> fallbackResponse = retryClient.get("http://dummy-url.abc")
+                .withFallback(fallback)
+                .asString();
+
+        assertEquals(fallback, fallbackResponse.getBody());
+    }
+
 //
 //    @Test
 //    public void setTimeoutsAndCustomClient() {
@@ -837,7 +857,11 @@ public class RestClientTest {
     public void testObjectMapperRead() throws RestClientException, IOException {
         RestClient customClient = null;
         try {
-            customClient = RestClient.newClient().build();
+            customClient = RestClient.newClient()
+                    .objectMapper(new JsonMapper())
+                    .build();
+
+
             GetResponse getResponseMock = new GetResponse();
             getResponseMock.setUrl("http://httpbin.org/get");
 

@@ -33,9 +33,11 @@ import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.util.EntityUtils;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -47,8 +49,20 @@ public class HttpResponse<T> {
     private Headers headers = new Headers();
     private InputStream rawBody;
     private T body;
+    private Class<T> responseClass;
+    private ObjectMapper objectMapper;
+
+    public static HttpResponse<Object> fallback(Object object) {
+        return new HttpResponse<>(object);
+    }
+
+    private HttpResponse(T object) {
+        this.body = object;
+    }
 
     public HttpResponse(org.apache.http.HttpResponse response, Class<T> responseClass, ObjectMapper objectMapper) {
+        this.responseClass = responseClass;
+        this.objectMapper = objectMapper;
         HttpEntity responseEntity = response.getEntity();
 
         Header[] allHeaders = response.getAllHeaders();
@@ -65,16 +79,6 @@ public class HttpResponse<T> {
         this.statusText = statusLine.getReasonPhrase();
 
         if (responseEntity != null) {
-            String charset = Constants.UTF_8;
-
-            Header contentType = responseEntity.getContentType();
-            if (contentType != null) {
-                String responseCharset = ResponseUtils.getCharsetFromContentType(contentType.getValue());
-                if (responseCharset != null && !responseCharset.trim().equals("")) {
-                    charset = responseCharset;
-                }
-            }
-
             try {
                 byte[] rawBody;
                 try {
@@ -87,19 +91,6 @@ public class HttpResponse<T> {
                     throw new RuntimeException(e2);
                 }
                 this.rawBody = new ByteArrayInputStream(rawBody);
-
-                if (JsonNode.class.equals(responseClass)) {
-                    String jsonString = new String(rawBody, charset).trim();
-                    this.body = (T) new JsonNode(jsonString);
-                } else if (String.class.equals(responseClass)) {
-                    this.body = (T) new String(rawBody, charset);
-                } else if (InputStream.class.equals(responseClass)) {
-                    this.body = (T) this.rawBody;
-                } else if (objectMapper != null) {
-                    this.body = objectMapper.readValue(new String(rawBody, charset), responseClass);
-                } else {
-                    throw new Exception("Only String, JsonNode and InputStream are supported, or an ObjectMapper implementation is required.");
-                }
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -129,6 +120,56 @@ public class HttpResponse<T> {
     }
 
     public T getBody() {
+        if(this.body == null) {
+            this.body = parseBody();
+        }
         return body;
+    }
+
+    private T parseBody() {
+
+        if (InputStream.class.equals(responseClass)) {
+            return (T) this.rawBody;
+        }
+
+        String bodyString = readBodyAsString();
+
+        if (JsonNode.class.equals(responseClass)) {
+            return (T) new JsonNode(bodyString);
+        } else if (String.class.equals(responseClass)) {
+            return (T) bodyString;
+        }  else if (objectMapper != null) {
+            return objectMapper.readValue(bodyString, responseClass);
+        } else {
+            throw new RuntimeException("Only String, JsonNode and InputStream are supported, or an ObjectMapper implementation is required.");
+        }
+    }
+
+    private String readBodyAsString()  {
+        try {
+            String charset = getCharset();
+            StringBuilder sb = new StringBuilder();
+            BufferedReader br = new BufferedReader(new InputStreamReader(this.rawBody, charset));
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line);
+            }
+            return sb.toString();
+        }catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String getCharset() {
+        String charset = Constants.UTF_8;
+
+        String contentType = headers.getFirst("Content-Type");
+        if (contentType != null) {
+            String responseCharset = ResponseUtils.getCharsetFromContentType(contentType);
+            if (responseCharset != null && !responseCharset.trim().equals("")) {
+                charset = responseCharset;
+            }
+        }
+        return charset;
     }
 }
