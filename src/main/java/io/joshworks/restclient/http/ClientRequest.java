@@ -6,7 +6,7 @@ import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.HttpRequest;
 import net.jodah.failsafe.Failsafe;
-import net.jodah.failsafe.RetryPolicy;
+import net.jodah.failsafe.SyncFailsafe;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
@@ -47,7 +47,7 @@ public class ClientRequest {
     public final HttpMethod httpMethod;
 
     //failsafe
-    private final RetryPolicy retryPolicy;
+    public final SyncFailsafe<Object> failsafe;
 
     ClientRequest(HttpMethod httpMethod, String url, RestClient.Configuration config) {
 
@@ -57,7 +57,8 @@ public class ClientRequest {
         this.objectMapper = config.getObjectMapper();
         this.url = url;
         this.httpMethod = httpMethod;
-        this.retryPolicy = config.getRetryPolicy();
+        failsafe = Failsafe.with(config.getRetryPolicy())
+                .with(config.getCircuitBreaker());
     }
 
     private static final String CONTENT_TYPE = "content-type";
@@ -117,36 +118,55 @@ public class ClientRequest {
             }
 
             public HttpResponse<T> get() throws InterruptedException, ExecutionException {
+                if (failsafe != null) {
+                    return failsafe.get(this::getResponse);
+                }
+                return this.getResponse();
+            }
+
+            public HttpResponse<T> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+                if (failsafe != null) {
+                    return failsafe.get(() -> this.getResponse(timeout, unit));
+                }
+                return this.getResponse(timeout, unit);
+            }
+
+            private HttpResponse<T> getResponse() throws ExecutionException, InterruptedException {
                 org.apache.http.HttpResponse httpResponse = future.get();
                 return new HttpResponse<>(httpResponse, responseClass, objectMapper);
             }
 
-            public HttpResponse<T> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            private HttpResponse<T> getResponse(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
                 org.apache.http.HttpResponse httpResponse = future.get(timeout, unit);
                 return new HttpResponse<>(httpResponse, responseClass, objectMapper);
             }
         };
     }
 
-    public <T> HttpResponse<T> request(HttpRequest request, Class<T> responseClass) {
+    public <T> HttpResponse<T> request(final HttpRequest request, final Class<T> responseClass) {
+        if (failsafe != null) {
+            return failsafe.get(() -> this.doRequest(request, responseClass));
+        }
+        return this.request(request, responseClass);
+    }
 
+    private <T> HttpResponse<T> doRequest(HttpRequest request, Class<T> responseClass) {
         HttpRequestBase requestObj = prepareRequest(request, false);
-        return Failsafe.with(retryPolicy).get(() -> {
-            org.apache.http.HttpResponse response;
-            try {
+        org.apache.http.HttpResponse response;
+        try {
 
-                response = syncClient.execute(requestObj);
-                HttpResponse<T> httpResponse = new HttpResponse<>(response, responseClass, objectMapper);
-                requestObj.releaseConnection();
-                return httpResponse;
-            } catch (Exception e) {
-                throw new RestClientException(e);
-            } finally {
-                requestObj.releaseConnection();
-            }
-        });
+            response = syncClient.execute(requestObj);
+            HttpResponse<T> httpResponse = new HttpResponse<>(response, responseClass, objectMapper);
+            requestObj.releaseConnection();
+            return httpResponse;
+        } catch (Exception e) {
+            throw new RestClientException(e);
+        } finally {
+            requestObj.releaseConnection();
+        }
 
     }
+
 
     private HttpRequestBase prepareRequest(HttpRequest request, boolean async) {
 

@@ -36,9 +36,8 @@ import java.util.concurrent.Future;
 
 public abstract class BaseRequest {
 
-
     protected HttpRequest httpRequest;
-    private final ClientRequest clientRequest;
+    protected final ClientRequest clientRequest;
 
     protected BaseRequest(ClientRequest clientRequest) {
         this.clientRequest = clientRequest;

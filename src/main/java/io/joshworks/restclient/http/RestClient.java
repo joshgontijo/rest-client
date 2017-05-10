@@ -28,6 +28,7 @@ package io.joshworks.restclient.http;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequestWithBody;
+import net.jodah.failsafe.CircuitBreaker;
 import net.jodah.failsafe.RetryPolicy;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
@@ -67,30 +68,37 @@ public class RestClient {
     }
 
     public GetRequest get(String url) {
+        url = configuration.baseUrl + url;
         return new GetRequest(new ClientRequest(HttpMethod.GET, url, configuration));
     }
 
     public GetRequest head(String url) {
+        url = configuration.baseUrl + url;
         return new GetRequest(new ClientRequest(HttpMethod.HEAD, url, configuration));
     }
 
     public HttpRequestWithBody options(String url) {
+        url = configuration.baseUrl + url;
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.OPTIONS, url, configuration));
     }
 
     public HttpRequestWithBody post(String url) {
+        url = configuration.baseUrl + url;
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.POST, url, configuration));
     }
 
     public HttpRequestWithBody delete(String url) {
+        url = configuration.baseUrl + url;
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.DELETE, url, configuration));
     }
 
     public HttpRequestWithBody patch(String url) {
+        url = configuration.baseUrl + url;
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.PATCH, url, configuration));
     }
 
     public HttpRequestWithBody put(String url) {
+        url = configuration.baseUrl + url;
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.PUT, url, configuration));
     }
 
@@ -130,6 +138,7 @@ public class RestClient {
         private int connectionTimeout = 10000;
         private int socketTimeout = 60000;
         private int maxTotal = 20;
+        private String baseUrl = "";
 //        private int maxPerRoute = 20;
 
         private ObjectMapper objectMapper;
@@ -143,7 +152,8 @@ public class RestClient {
         private CloseableHttpClient syncClient;
 
         //failsafe
-        private RetryPolicy retryPolicy;
+        private RetryPolicy retryPolicy = new RetryPolicy().withMaxRetries(0);
+        private CircuitBreaker circuitBreaker = new CircuitBreaker();
 
         public RestClient build() {
             // Create common default configuration
@@ -189,6 +199,10 @@ public class RestClient {
             return restClient;
         }
 
+        public Configuration baseUrl(final String baseUrl) {
+            this.baseUrl = baseUrl;
+            return this;
+        }
 
         public Configuration defaultHeader(String key, String value) {
             this.defaultHeaders.put(key, value);
@@ -268,8 +282,23 @@ public class RestClient {
             return this;
         }
 
+        /**
+         * Configure the retry policy for this client. this feature is disabled if nothing is set
+         *
+         * @param retryPolicy    The Failsafe's RetryPolicy to be used on thi client.
+         */
         public Configuration retryPolicy(RetryPolicy retryPolicy) {
             this.retryPolicy = retryPolicy;
+            return this;
+        }
+
+        /**
+         * Configure the circuit breaker for this client. this feature is disabled if nothing is set
+         *
+         * @param circuitBreaker    The Failsafe's CircuitBreaker to be used on thi client.
+         */
+        public Configuration circuitBreaker(CircuitBreaker circuitBreaker) {
+            this.circuitBreaker = circuitBreaker;
             return this;
         }
 
@@ -289,8 +318,12 @@ public class RestClient {
             return objectMapper;
         }
 
-        public RetryPolicy getRetryPolicy() {
+        RetryPolicy getRetryPolicy() {
             return retryPolicy;
+        }
+
+        CircuitBreaker getCircuitBreaker() {
+            return circuitBreaker;
         }
     }
 

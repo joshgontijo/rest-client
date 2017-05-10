@@ -26,8 +26,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.joshworks.restclient.request;
 
 import io.joshworks.restclient.Constants;
-import io.joshworks.restclient.http.HttpMethod;
 import io.joshworks.restclient.http.ClientRequest;
+import io.joshworks.restclient.http.HttpMethod;
+import io.joshworks.restclient.http.HttpResponse;
 import io.joshworks.restclient.http.utils.Base64Coder;
 import io.joshworks.restclient.http.utils.URLParamEncoder;
 import io.joshworks.restclient.request.body.Body;
@@ -46,16 +47,17 @@ import java.util.regex.Pattern;
 
 public class HttpRequest extends BaseRequest {
 
-    protected String url;
+    private String url;
     protected Body body;
     Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
     private HttpMethod httpMethod;
 
-    public HttpRequest(ClientRequest config) {
-        super(config);
-        this.url = config.url;
-        this.httpMethod = config.httpMethod;
+    public HttpRequest(ClientRequest clientRequest) {
+        super(clientRequest);
+        this.url = clientRequest.url;
+        this.httpMethod = clientRequest.httpMethod;
         super.httpRequest = this;
+
     }
 
     public HttpRequest routeParam(String name, String value) {
@@ -131,6 +133,11 @@ public class HttpRequest extends BaseRequest {
                 }
             }
         }
+        return this;
+    }
+
+    public HttpRequest withFallback(Object fallback) {
+        clientRequest.failsafe.withFallback(HttpResponse.fallback(fallback));
         return this;
     }
 

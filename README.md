@@ -14,9 +14,10 @@ Apart from the features provided by Unirest Java, this fork also provides:
 
 * Bug fixes
 * Independent client configuration
+* Lazy parsing of response body
 * URL transformer, for use with service discovery mechanisms
-* Bulk head, Circuit breaker and connection retry by using [Failsafe](https://github.com/jhalterman/failsafe)
-* Single idle thread monitor to avoid too many threads
+* Bulk head, Circuit breaker, fallback response and connection retry using [Failsafe](https://github.com/jhalterman/failsafe)
+* Single idle thread monitor for all clients
 
 
 ### With Maven
@@ -72,11 +73,35 @@ RestClient client = RestClient.newClient().build();
 
 ```
 
+### Setting base url
+
+```java
+
+RestClient client = RestClient.newClient().baseUrl("http://my-api.com/v1").build();
+String response = client.get("/some-resource").asString()
+
+```
+
+### Fallback response
+Fallback provides a default response whenever a service fails, when using with circuit breaker and / or RetryPolicy,
+it will return a fallback if the circuit is open and / or after retrying.
+
+```java
+
+String response = client.get("http://www.flaky-service.com")
+                        .withFallback("Yolo")
+                        .asString();
+
+System.out.println(response); //Yolo
+
+```
+
+
 ### Serialization
 Before an `asObject(Class)` or a `.body(Object)` invokation, is necessary to provide a custom implementation of the `ObjectMapper` interface.
 This should be done for each client.
 
-For example, serializing Json from\to Object using the popular Gson takes only few lines of code.
+For example, serializing Json from / to Object using the popular Gson takes only few lines of code.
 
 ```java
  
@@ -116,7 +141,6 @@ HttpResponse<JsonNode> postResponse = client.post("http://httpbin.org/authors/po
 ```
 
 # Configuration API
-
 Use the configuration api to configure a single client instance.
 
 ```java
@@ -137,6 +161,7 @@ Use the configuration api to configure a single client instance.
 
             //Failsafe
             .retryPolicy(RetryPolicy retryPolicy)
+            .circuitBeaker(CircuitBreaker breaker)
 ```
 
 # Exiting an application
@@ -149,6 +174,7 @@ Always close the clients on application exit.
 client.shutdown();
 
 //When your application is shutting down:
+//Closes all client connections and the monitor
 ClientContainer.shutdown();
 
 ```

@@ -36,6 +36,7 @@ import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import io.joshworks.restclient.test.helper.GetResponse;
 import io.joshworks.restclient.test.helper.JsonMapper;
+import net.jodah.failsafe.CircuitBreaker;
 import net.jodah.failsafe.RetryPolicy;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
@@ -800,7 +801,7 @@ public class RestClientTest {
         client3.shutdown();
     }
 
-    @Test
+    @Test //FIXME
     public void retry() throws RestClientException, IOException {
         RestClient retryClient = RestClient.newClient()
                 .retryPolicy(new RetryPolicy().withMaxRetries(2))
@@ -810,7 +811,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void circuitBreaker() throws RestClientException, IOException {
+    public void fallbackResponse() throws RestClientException, IOException {
         String fallback = "FALLBACK-DATA";
         RestClient retryClient = RestClient.newClient().build();
 
@@ -918,5 +919,54 @@ public class RestClientTest {
         assertEquals("Only header \"Content-Type\" should exist", null, headers.getFirst("cOnTeNt-TyPe"));
         assertEquals("Only header \"Content-Type\" should exist", null, headers.getFirst("content-type"));
         assertEquals("Only header \"Content-Type\" should exist", "application/json", headers.getFirst("Content-Type"));
+    }
+
+    @Test
+    public void circuitBreaker() throws Exception {
+        RestClient customClient = null;
+        try {
+            CircuitBreaker circuitBreaker = new CircuitBreaker()
+                    .withFailureThreshold(1);
+
+            customClient = RestClient.newClient()
+                    .baseUrl("http://invalid-url.abc")
+                    .circuitBreaker(circuitBreaker)
+                    .build();
+
+
+            assertTrue(circuitBreaker.isClosed());
+            try {
+                customClient.get("/dummy").asJson();
+                customClient.get("/dummy").asJson();
+            } catch (Exception ignored) {
+
+            }
+            assertTrue(circuitBreaker.isOpen());
+
+
+        } finally {
+            customClient.shutdown();
+        }
+    }
+
+    //TODO add to all other methods
+    @Test
+    public void baseUrl() throws Exception {
+        RestClient customClient = null;
+        try {
+            customClient = RestClient.newClient()
+                    .baseUrl("http://httpbin.org")
+                    .build();
+
+
+            HttpResponse<JsonNode> postResponse = customClient.get("/get")
+                    .header("accept", "application/json")
+                    .header("Content-Type", "application/json")
+                    .asJson();
+
+            assertEquals(200, postResponse.getStatus());
+        } finally {
+            customClient.shutdown();
+        }
     }
 }

@@ -72,6 +72,13 @@
             <version>1.2.1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.joshworks</groupId>
+            <artifactId>snappy</artifactId>
+            <version>0.2</version>
+            <scope>test</scope>
+        </dependency>
+
 
     </dependencies>
 

@@ -52,8 +52,9 @@ public class HttpResponse<T> {
     private Class<T> responseClass;
     private ObjectMapper objectMapper;
 
-    public static HttpResponse<Object> fallback(Object object) {
-        return new HttpResponse<>(object);
+
+    public static <T> HttpResponse<T> fallback(T body) {
+        return new HttpResponse<>(body);
     }
 
     private HttpResponse(T object) {
@@ -101,6 +102,10 @@ public class HttpResponse<T> {
 
     public int getStatus() {
         return statusCode;
+    }
+
+    public boolean isSuccessful() {
+        return statusCode >= 200 && statusCode < 300 || statusCode == 304;
     }
 
     public String getStatusText() {
