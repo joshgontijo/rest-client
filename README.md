@@ -28,7 +28,7 @@ You can use Maven by including the library:
 <dependency>
     <groupId>io.joshworks.unirest</groupId>
     <artifactId>unirest-java</artifactId>
-    <version>0.1</version>
+    <version>1.4.10</version>
 </dependency>
 ```
 
