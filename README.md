@@ -32,31 +32,6 @@ You can use Maven by including the library:
 </dependency>
 ```
 
-Dependencies:
-
-```xml
-<dependency>
-  <groupId>org.apache.httpcomponents</groupId>
-  <artifactId>httpclient</artifactId>
-  <version>4.3.6</version>
-</dependency>
-<dependency>
-  <groupId>org.apache.httpcomponents</groupId>
-  <artifactId>httpasyncclient</artifactId>
-  <version>4.0.2</version>
-</dependency>
-<dependency>
-  <groupId>org.apache.httpcomponents</groupId>
-  <artifactId>httpmime</artifactId>
-  <version>4.3.6</version>
-</dependency>
-<dependency>
-  <groupId>org.json</groupId>
-  <artifactId>json</artifactId>
-  <version>20140107</version>
-</dependency>
-```
-
 ## Basics
 
 Please read the [Unirest Documentation](https://github.com/Mashape/unirest-java) for basic examples on how to use the core api.
