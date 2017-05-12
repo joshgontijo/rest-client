@@ -767,18 +767,22 @@ public class RestClientTest {
         JSONObject headers = request.asJson().getBody().getObject().getJSONObject("headers");
         assertEquals("Marco", headers.getString("Name"));
 
-        request = client.get("http://httpbin.org/headers").header("Name", "Marco").header("Name", "John");
-        assertEquals(1, request.getHeaders().size());
-        assertEquals("Marco", request.getHeaders().get("name").get(0));
-        assertEquals("John", request.getHeaders().get("name").get(1));
-        assertEquals("Marco", request.getHeaders().get("NAme").get(0));
-        assertEquals("John", request.getHeaders().get("NAme").get(1));
-        assertEquals("Marco", request.getHeaders().get("Name").get(0));
-        assertEquals("John", request.getHeaders().get("Name").get(1));
-
-        headers = request.asJson().getBody().getObject().getJSONObject("headers");
-        assertEquals("Marco,John", headers.get("Name"));
     }
+
+//    @Test
+//    public void multipleHeaders() {
+//        GetRequest request = client.get("http://localhost:9000").header("Name", "Marco").header("Name", "John");
+//        assertEquals(1, request.getHeaders().size());
+//        assertEquals("Marco", request.getHeaders().get("name").get(0));
+//        assertEquals("John", request.getHeaders().get("name").get(1));
+//        assertEquals("Marco", request.getHeaders().get("NAme").get(0));
+//        assertEquals("John", request.getHeaders().get("NAme").get(1));
+//        assertEquals("Marco", request.getHeaders().get("Name").get(0));
+//        assertEquals("John", request.getHeaders().get("Name").get(1));
+//
+//        JSONObject headers = request.asJson().getBody().getObject().getJSONObject("headers");
+//        assertEquals("Marco,John", headers.get("Name"));
+//    }
 
 
     @Test

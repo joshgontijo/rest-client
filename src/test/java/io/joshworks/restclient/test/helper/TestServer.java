@@ -56,6 +56,7 @@ public class TestServer {
             dataSink.remove(id);
         });
 
+        enableTracer();
         SnappyServer.start();
     }
 
