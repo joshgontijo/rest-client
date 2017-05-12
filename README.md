@@ -154,5 +154,5 @@ ClientContainer.shutdown();
 
 ```
 
-[license-url]: https://github.com/Mashape/unirest-java/blob/master/LICENSE
+[license-url]: https://github.com/josueeduardo/rest-client/blob/master/LICENSE
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
