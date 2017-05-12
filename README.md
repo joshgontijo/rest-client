@@ -14,7 +14,7 @@ Apart from the features provided by Unirest Java, this fork also provides:
 
 * Bug fixes
 * Independent client configuration
-* Lazy parsing of response body
+* Lazy response body parsing
 * URL transformer, for use with service discovery mechanisms
 * Bulk head, Circuit breaker, fallback response and connection retry using [Failsafe](https://github.com/jhalterman/failsafe)
 * Single idle thread monitor for all clients

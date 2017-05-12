@@ -114,7 +114,10 @@
 
     </dependencies>
 
-    <build>
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -169,5 +172,8 @@
             </plugin>
         </plugins>
     </build>
+        </profile>
+    </profiles>
+
 
 </project>
