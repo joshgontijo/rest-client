@@ -53,7 +53,7 @@ RestClient client = RestClient.newClient().build();
 ```java
 
 RestClient client = RestClient.newClient().baseUrl("http://my-api.com/v1").build();
-String response = client.get("/some-resource").asString()
+String response = client.get("/some-resource").asString();
 
 ```
 
