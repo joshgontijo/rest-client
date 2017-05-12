@@ -7,7 +7,6 @@
     <packaging>jar</packaging>
     <version>1.4.10</version>
 
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -21,6 +20,10 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+
+    <name>Unirest java</name>
+    <description>Restful Java client based on Unirest</description>
+
     <url>https://github.com/josueeduardo</url>
     <scm>
         <connection>https://github.com/josueeduardo/snappy.git</connection>
