@@ -3,7 +3,6 @@ package io.joshworks.restclient.http;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,7 +37,7 @@ public class ClientContainer {
             logger.info("Shutting down rest client, id: " + clientEntry.getKey());
             try {
                 clientEntry.getValue().shutdown();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 logger.error("Failed to shutdown client '" + clientEntry.getKey() + "'", e);
             }
         }

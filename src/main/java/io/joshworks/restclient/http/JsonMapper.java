@@ -1,4 +1,4 @@
-package io.joshworks.restclient.test.helper;
+package io.joshworks.restclient.http;
 
 import com.google.gson.Gson;
 import io.joshworks.restclient.http.mapper.ObjectMapper;

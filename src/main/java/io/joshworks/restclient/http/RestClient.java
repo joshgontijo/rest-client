@@ -43,11 +43,11 @@ import org.apache.http.nio.reactor.IOReactorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 public class RestClient {
 
@@ -68,38 +68,31 @@ public class RestClient {
     }
 
     public GetRequest get(String url) {
-        url = configuration.baseUrl + url;
-        return new GetRequest(new ClientRequest(HttpMethod.GET, url, configuration));
+        return new GetRequest(new ClientRequest(HttpMethod.GET, configuration.resolveUrl(url), configuration));
     }
 
     public GetRequest head(String url) {
-        url = configuration.baseUrl + url;
-        return new GetRequest(new ClientRequest(HttpMethod.HEAD, url, configuration));
+        return new GetRequest(new ClientRequest(HttpMethod.HEAD, configuration.resolveUrl(url), configuration));
     }
 
     public HttpRequestWithBody options(String url) {
-        url = configuration.baseUrl + url;
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.OPTIONS, url, configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.OPTIONS, configuration.resolveUrl(url), configuration));
     }
 
     public HttpRequestWithBody post(String url) {
-        url = configuration.baseUrl + url;
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.POST, url, configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.POST, configuration.resolveUrl(url), configuration));
     }
 
     public HttpRequestWithBody delete(String url) {
-        url = configuration.baseUrl + url;
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.DELETE, url, configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.DELETE, configuration.resolveUrl(url), configuration));
     }
 
     public HttpRequestWithBody patch(String url) {
-        url = configuration.baseUrl + url;
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PATCH, url, configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PATCH, configuration.resolveUrl(url), configuration));
     }
 
     public HttpRequestWithBody put(String url) {
-        url = configuration.baseUrl + url;
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PUT, url, configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PUT, configuration.resolveUrl(url), configuration));
     }
 
     void closeIdleConnections() {
@@ -113,17 +106,21 @@ public class RestClient {
     /**
      * Close the asynchronous client and its event loop. Use this method to close all the threads and allow an application to exit.
      */
-    public void shutdown() throws IOException {
-        // Closing the Sync HTTP client
-        CloseableHttpClient syncClient = configuration.getSyncClient();
-        if (syncClient != null) {
-            syncClient.close();
-        }
+    public void shutdown() {
+        try {
+            // Closing the Sync HTTP client
+            CloseableHttpClient syncClient = configuration.getSyncClient();
+            if (syncClient != null) {
+                syncClient.close();
+            }
 
-        // Closing the Async HTTP client (if running)
-        CloseableHttpAsyncClient asyncClient = configuration.getAsyncClient();
-        if (asyncClient != null && asyncClient.isRunning()) {
-            asyncClient.close();
+            // Closing the Async HTTP client (if running)
+            CloseableHttpAsyncClient asyncClient = configuration.getAsyncClient();
+            if (asyncClient != null && asyncClient.isRunning()) {
+                asyncClient.close();
+            }
+        }catch (Exception ex) {
+            throw new RuntimeException(ex);
         }
 
         ClientContainer.removeClient(this);
@@ -141,7 +138,9 @@ public class RestClient {
         private String baseUrl = "";
 //        private int maxPerRoute = 20;
 
-        private ObjectMapper objectMapper;
+        private Function<String, String> urlTransformer = (url) -> url;
+        private ObjectMapper objectMapper = new JsonMapper();
+
         private HttpHost proxy;
         private PoolingNHttpClientConnectionManager asyncConnectionManager;
         private PoolingHttpClientConnectionManager syncConnectionManager;
@@ -199,7 +198,7 @@ public class RestClient {
             return restClient;
         }
 
-        public Configuration baseUrl(final String baseUrl) {
+        public Configuration baseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
             return this;
         }
@@ -211,6 +210,11 @@ public class RestClient {
 
         public Configuration defaultHeader(String key, long value) {
             this.defaultHeaders.put(key, value);
+            return this;
+        }
+
+        public Configuration urlTransformer(Function<String, String> transformer) {
+            this.urlTransformer = transformer;
             return this;
         }
 
@@ -275,7 +279,7 @@ public class RestClient {
         /**
          * Set the concurrency levels
          *
-         * @param maxTotal    Defines the overall connection limit for a connection pool. Default is 20.
+         * @param maxTotal Defines the overall connection limit for a connection pool. Default is 20.
          */
         public Configuration concurrency(int maxTotal) {
             this.maxTotal = maxTotal;
@@ -285,7 +289,7 @@ public class RestClient {
         /**
          * Configure the retry policy for this client. this feature is disabled if nothing is set
          *
-         * @param retryPolicy    The Failsafe's RetryPolicy to be used on thi client.
+         * @param retryPolicy The Failsafe's RetryPolicy to be used on thi client.
          */
         public Configuration retryPolicy(RetryPolicy retryPolicy) {
             this.retryPolicy = retryPolicy;
@@ -295,11 +299,16 @@ public class RestClient {
         /**
          * Configure the circuit breaker for this client. this feature is disabled if nothing is set
          *
-         * @param circuitBreaker    The Failsafe's CircuitBreaker to be used on thi client.
+         * @param circuitBreaker The Failsafe's CircuitBreaker to be used on thi client.
          */
         public Configuration circuitBreaker(CircuitBreaker circuitBreaker) {
             this.circuitBreaker = circuitBreaker;
             return this;
+        }
+
+        //Only applicable for the base url
+        private String resolveUrl(String url) {
+            return urlTransformer.apply(baseUrl) + url;
         }
 
         Map<String, Object> getDefaultHeaders() {

@@ -35,7 +35,7 @@ import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import io.joshworks.restclient.test.helper.GetResponse;
-import io.joshworks.restclient.test.helper.JsonMapper;
+import io.joshworks.restclient.http.JsonMapper;
 import net.jodah.failsafe.CircuitBreaker;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
@@ -951,6 +951,17 @@ public class RestClientTest {
         } finally {
             customClient.shutdown();
         }
+    }
+
+    @Test
+    public void urlTransformer() {
+        RestClient client = RestClient.newClient()
+                .baseUrl("http://invalid-url.abc")
+                .urlTransformer((url) -> "http://httpbin.org")
+                .build();
+
+        HttpResponse<String> response = client.get("/get").asString();
+        assertEquals(200, response.getStatus());
     }
 
     //TODO add to all other methods
