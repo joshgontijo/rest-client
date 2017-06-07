@@ -15,7 +15,7 @@ Apart from the features provided by Unirest Java, this fork also provides:
 * Bug fixes
 * Independent client configuration
 * Lazy response body parsing
-* URL transformer, for use with service discovery mechanisms
+* Default JsonMapper using Gson
 * Bulk head, Circuit breaker, fallback response and connection retry using [Failsafe](https://github.com/jhalterman/failsafe)
 * Single idle thread monitor for all clients
 
@@ -48,12 +48,21 @@ RestClient client = RestClient.newClient().build();
 
 ```
 
-### Setting base url
+### Base url
 
 ```java
 
 RestClient client = RestClient.newClient().baseUrl("http://my-api.com/v1").build();
 String response = client.get("/some-resource").asString();
+
+```
+
+### Simple client
+SimpleClient provides static methods for simple usage with default configuration
+
+```java
+
+String response = SimpleClient.get("http://my-api.com/v1").asString();
 
 ```
 
@@ -77,6 +86,7 @@ Before an `asObject(Class)` or a `.body(Object)` invokation, is necessary to pro
 This should be done for each client.
 
 For example, serializing Json from / to Object using the popular Gson takes only few lines of code.
+By default Gson is used, so there's no need to register any other unless you need custom configuration.
 
 ```java
  

@@ -10,42 +10,58 @@ import io.joshworks.restclient.request.HttpRequestWithBody;
 public class SimpleClient {
 
     private static RestClient client = RestClient.newClient().build();
+    private static ObjectMapper mapper = new JsonMapper();
 
     public static void objectMapper(ObjectMapper mapper) {
+        SimpleClient.mapper = mapper;
         client.shutdown();
-        client = RestClient.newClient().objectMapper(mapper).build();
+        client = null;
+    }
+
+    private static RestClient getClient() {
+        if (client == null) {
+            synchronized (RestClient.class) {
+                if (client == null) {
+                    client = RestClient.newClient().objectMapper(mapper).build();
+                }
+            }
+        }
+        return client;
     }
 
     public static void close() {
-        client.shutdown();
+        if (client != null) {
+            client.shutdown();
+        }
     }
 
     public static GetRequest get(String url) {
-        return client.get(url);
+        return getClient().get(url);
     }
 
     public static GetRequest head(String url) {
-        return client.head(url);
+        return getClient().head(url);
     }
 
     public static HttpRequestWithBody options(String url) {
-        return client.options(url);
+        return getClient().options(url);
     }
 
     public static HttpRequestWithBody post(String url) {
-        return client.post(url);
+        return getClient().post(url);
     }
 
     public static HttpRequestWithBody delete(String url) {
-        return client.delete(url);
+        return getClient().delete(url);
     }
 
     public static HttpRequestWithBody patch(String url) {
-        return client.patch(url);
+        return getClient().patch(url);
     }
 
     public static HttpRequestWithBody put(String url) {
-        return client.put(url);
+        return getClient().put(url);
     }
+
 
 }
