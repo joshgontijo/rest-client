@@ -819,7 +819,7 @@ public class RestClientTest {
         String fallback = "FALLBACK-DATA";
         RestClient retryClient = RestClient.newClient().build();
 
-        HttpResponse<String> fallbackResponse = retryClient.get("http://dummy-url.abc")
+        HttpResponse<String> fallbackResponse = retryClient.get("http://localhost:1234/invalid-endpoint")
                 .withFallback(fallback)
                 .asString();
 
@@ -933,17 +933,17 @@ public class RestClientTest {
                     .withFailureThreshold(1);
 
             customClient = RestClient.newClient()
-                    .baseUrl("http://invalid-url.abc")
+                    .baseUrl("http://localhost:1234")
                     .circuitBreaker(circuitBreaker)
                     .build();
 
 
             assertTrue(circuitBreaker.isClosed());
             try {
-                customClient.get("/dummy").asJson();
-                customClient.get("/dummy").asJson();
-            } catch (Exception ignored) {
-
+                customClient.get("/invalid-endpoint").asJson();
+                customClient.get("/invalid-endpoint").asJson();
+            } catch (Exception ex) {
+                System.err.println(ex.getMessage());
             }
             assertTrue(circuitBreaker.isOpen());
 

@@ -80,6 +80,14 @@ System.out.println(response); //Yolo
 
 ```
 
+### Custom Failsafe configuration
+```java
+
+RestClient client = RestClient.newClient().failsafe(Failsafe.with(...)).build()
+
+
+```
+
 
 ### Serialization
 Before an `asObject(Class)` or a `.body(Object)` invokation, is necessary to provide a custom implementation of the `ObjectMapper` interface.

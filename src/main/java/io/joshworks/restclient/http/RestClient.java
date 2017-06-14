@@ -29,7 +29,10 @@ import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequestWithBody;
 import net.jodah.failsafe.CircuitBreaker;
+import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
+import net.jodah.failsafe.SyncFailsafe;
+import net.jodah.failsafe.function.CheckedConsumer;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -151,8 +154,7 @@ public class RestClient {
         private CloseableHttpClient syncClient;
 
         //failsafe
-        private RetryPolicy retryPolicy = new RetryPolicy().withMaxRetries(0);
-        private CircuitBreaker circuitBreaker = new CircuitBreaker();
+        private SyncFailsafe<Object> failsafe;
 
         public RestClient build() {
             // Create common default configuration
@@ -166,7 +168,6 @@ public class RestClient {
             syncConnectionManager = new PoolingHttpClientConnectionManager();
             syncConnectionManager.setMaxTotal(maxTotal);
 //            syncConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
-
 
             //default client
             if (this.syncClient == null) {
@@ -292,7 +293,7 @@ public class RestClient {
          * @param retryPolicy The Failsafe's RetryPolicy to be used on thi client.
          */
         public Configuration retryPolicy(RetryPolicy retryPolicy) {
-            this.retryPolicy = retryPolicy;
+            failsafe = failsafe == null ? Failsafe.with(retryPolicy) : failsafe.with(retryPolicy);
             return this;
         }
 
@@ -302,7 +303,22 @@ public class RestClient {
          * @param circuitBreaker The Failsafe's CircuitBreaker to be used on thi client.
          */
         public Configuration circuitBreaker(CircuitBreaker circuitBreaker) {
-            this.circuitBreaker = circuitBreaker;
+            failsafe = failsafe == null ? Failsafe.with(circuitBreaker) : failsafe.with(circuitBreaker);
+            return this;
+        }
+
+        public Configuration onFailedAttempt(CheckedConsumer<Exception> onFailedAttempt) {
+            this.failsafe = this.failsafe == null ? Failsafe.with(new RetryPolicy()) : this.failsafe.onFailedAttempt(onFailedAttempt);
+            return this;
+        }
+
+        public Configuration onRetriesExceeded(CheckedConsumer<Exception> onRetriesExceeded) {
+            this.failsafe = this.failsafe == null ? Failsafe.with(new RetryPolicy()) : this.failsafe.onRetriesExceeded(onRetriesExceeded);
+            return this;
+        }
+
+        public Configuration failsafe(SyncFailsafe<Object> failsafe) {
+            this.failsafe = failsafe;
             return this;
         }
 
@@ -327,12 +343,8 @@ public class RestClient {
             return objectMapper;
         }
 
-        RetryPolicy getRetryPolicy() {
-            return retryPolicy;
-        }
-
-        CircuitBreaker getCircuitBreaker() {
-            return circuitBreaker;
+        SyncFailsafe<Object> getFailsafe() {
+            return failsafe;
         }
     }
 

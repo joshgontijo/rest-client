@@ -5,7 +5,6 @@ import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.HttpRequest;
-import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.SyncFailsafe;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
@@ -46,8 +45,8 @@ public class ClientRequest {
     public final String url;
     public final HttpMethod httpMethod;
 
-    //failsafe
-    public final SyncFailsafe<Object> failsafe;
+    //failsafe - can be modified by HttpRequest
+    public SyncFailsafe<Object> failsafe;
 
     ClientRequest(HttpMethod httpMethod, String url, RestClient.Configuration config) {
 
@@ -57,8 +56,7 @@ public class ClientRequest {
         this.objectMapper = config.getObjectMapper();
         this.url = url;
         this.httpMethod = httpMethod;
-        failsafe = Failsafe.with(config.getRetryPolicy())
-                .with(config.getCircuitBreaker());
+        this.failsafe = config.getFailsafe();
     }
 
     private static final String CONTENT_TYPE = "content-type";
@@ -147,7 +145,7 @@ public class ClientRequest {
         if (failsafe != null) {
             return failsafe.get(() -> this.doRequest(request, responseClass));
         }
-        return this.request(request, responseClass);
+        return this.doRequest(request, responseClass);
     }
 
     private <T> HttpResponse<T> doRequest(HttpRequest request, Class<T> responseClass) {
