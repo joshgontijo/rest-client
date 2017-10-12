@@ -28,21 +28,11 @@ package io.joshworks.restclient.http;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequestWithBody;
-import net.jodah.failsafe.CircuitBreaker;
-import net.jodah.failsafe.Failsafe;
-import net.jodah.failsafe.RetryPolicy;
 import net.jodah.failsafe.SyncFailsafe;
-import net.jodah.failsafe.function.CheckedConsumer;
-import org.apache.http.HttpHost;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
-import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
-import org.apache.http.nio.reactor.IOReactorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,52 +48,84 @@ public class RestClient {
 
     private static final int IDLE_CONNECTION_TIMEOUT = 30;
 
-    private final Configuration configuration;
     final String id;
 
-    private RestClient(Configuration configuration) {
-        this.configuration = configuration;
+    private final Function<String, String> urlTransformer;
+    private final ObjectMapper objectMapper;
+
+    private final String baseUrl;
+    private final SyncFailsafe<Object> failsafe;
+    private final PoolingNHttpClientConnectionManager asyncConnectionManager;
+    private final PoolingHttpClientConnectionManager syncConnectionManager;
+
+    private final Map<String, Object> defaultHeaders = new HashMap<>();
+
+    private final CloseableHttpAsyncClient asyncClient;
+    private final CloseableHttpClient syncClient;
+
+    RestClient(String baseUrl,
+               ObjectMapper objectMapper,
+               Map<String, Object> defaultHeaders,
+               Function<String, String> urlTransformer,
+               SyncFailsafe<Object> failsafe,
+               PoolingNHttpClientConnectionManager asyncConnectionManager,
+               PoolingHttpClientConnectionManager syncConnectionManager,
+               CloseableHttpAsyncClient asyncClient,
+               CloseableHttpClient syncClient) {
+        this.objectMapper = objectMapper;
+        this.baseUrl = baseUrl;
+        this.urlTransformer = urlTransformer;
+        this.failsafe = failsafe;
+        this.asyncConnectionManager = asyncConnectionManager;
+        this.syncConnectionManager = syncConnectionManager;
+        this.asyncClient = asyncClient;
+        this.syncClient = syncClient;
+        this.defaultHeaders.putAll(defaultHeaders);
         this.id = UUID.randomUUID().toString().substring(0, 8);
     }
 
-    public static Configuration newClient() {
-        return new Configuration();
+    public static ClientBuilder builder() {
+        return new ClientBuilder();
     }
 
     public GetRequest get(String url) {
-        return new GetRequest(new ClientRequest(HttpMethod.GET, configuration.resolveUrl(url), configuration));
+        return new GetRequest(new ClientRequest(HttpMethod.GET, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
     }
 
     public GetRequest head(String url) {
-        return new GetRequest(new ClientRequest(HttpMethod.HEAD, configuration.resolveUrl(url), configuration));
+        return new GetRequest(new ClientRequest(HttpMethod.HEAD, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
     }
 
     public HttpRequestWithBody options(String url) {
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.OPTIONS, configuration.resolveUrl(url), configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.OPTIONS, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
     }
 
     public HttpRequestWithBody post(String url) {
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.POST, configuration.resolveUrl(url), configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.POST, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
     }
 
     public HttpRequestWithBody delete(String url) {
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.DELETE, configuration.resolveUrl(url), configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.DELETE, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
     }
 
     public HttpRequestWithBody patch(String url) {
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PATCH, configuration.resolveUrl(url), configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PATCH, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
     }
 
     public HttpRequestWithBody put(String url) {
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PUT, configuration.resolveUrl(url), configuration));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PUT, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
+    }
+
+    private String resolveUrl(String url) {
+        return urlTransformer.apply(baseUrl) + url;
     }
 
     void closeIdleConnections() {
-        configuration.asyncConnectionManager.closeExpiredConnections();
-        configuration.asyncConnectionManager.closeIdleConnections(IDLE_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+        asyncConnectionManager.closeExpiredConnections();
+        asyncConnectionManager.closeIdleConnections(IDLE_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
 
-        configuration.syncConnectionManager.closeExpiredConnections();
-        configuration.syncConnectionManager.closeIdleConnections(IDLE_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+        syncConnectionManager.closeExpiredConnections();
+        syncConnectionManager.closeIdleConnections(IDLE_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
     }
 
     /**
@@ -112,240 +134,19 @@ public class RestClient {
     public void shutdown() {
         try {
             // Closing the Sync HTTP client
-            CloseableHttpClient syncClient = configuration.getSyncClient();
             if (syncClient != null) {
                 syncClient.close();
             }
 
             // Closing the Async HTTP client (if running)
-            CloseableHttpAsyncClient asyncClient = configuration.getAsyncClient();
             if (asyncClient != null && asyncClient.isRunning()) {
                 asyncClient.close();
             }
-        }catch (Exception ex) {
+        } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
 
         ClientContainer.removeClient(this);
-    }
-
-    public static class Configuration {
-
-        private Configuration() {
-
-        }
-
-        private int connectionTimeout = 10000;
-        private int socketTimeout = 60000;
-        private int maxTotal = 20;
-        private String baseUrl = "";
-//        private int maxPerRoute = 20;
-
-        private Function<String, String> urlTransformer = (url) -> url;
-        private ObjectMapper objectMapper = new JsonMapper();
-
-        private HttpHost proxy;
-        private PoolingNHttpClientConnectionManager asyncConnectionManager;
-        private PoolingHttpClientConnectionManager syncConnectionManager;
-
-        private Map<String, Object> defaultHeaders = new HashMap<>();
-
-        private CloseableHttpAsyncClient asyncClient;
-        private CloseableHttpClient syncClient;
-
-        //failsafe
-        private SyncFailsafe<Object> failsafe;
-
-        public RestClient build() {
-            // Create common default configuration
-            RequestConfig clientConfig = RequestConfig.custom()
-                    .setConnectTimeout((connectionTimeout))
-                    .setSocketTimeout((socketTimeout))
-                    .setConnectionRequestTimeout((socketTimeout))
-                    .setProxy(proxy)
-                    .build();
-
-            syncConnectionManager = new PoolingHttpClientConnectionManager();
-            syncConnectionManager.setMaxTotal(maxTotal);
-//            syncConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
-
-            //default client
-            if (this.syncClient == null) {
-                this.syncClient = HttpClientBuilder.create()
-                        .setDefaultRequestConfig(clientConfig)
-                        .setConnectionManager(syncConnectionManager)
-                        .build();
-            }
-
-
-            try {
-                DefaultConnectingIOReactor ioreactor = new DefaultConnectingIOReactor();
-                asyncConnectionManager = new PoolingNHttpClientConnectionManager(ioreactor);
-                asyncConnectionManager.setMaxTotal(maxTotal);
-//                asyncConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
-            } catch (IOReactorException e) {
-                throw new RuntimeException(e);
-            }
-
-            if (this.asyncClient == null) {
-                this.asyncClient = HttpAsyncClientBuilder.create()
-                        .setDefaultRequestConfig(clientConfig)
-                        .setConnectionManager(asyncConnectionManager)
-                        .build();
-            }
-
-            RestClient restClient = new RestClient(this);
-            ClientContainer.addClient(restClient);
-            return restClient;
-        }
-
-        public Configuration baseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
-            return this;
-        }
-
-        public Configuration defaultHeader(String key, String value) {
-            this.defaultHeaders.put(key, value);
-            return this;
-        }
-
-        public Configuration defaultHeader(String key, long value) {
-            this.defaultHeaders.put(key, value);
-            return this;
-        }
-
-        public Configuration urlTransformer(Function<String, String> transformer) {
-            this.urlTransformer = transformer;
-            return this;
-        }
-
-        /**
-         * Set the HttpClient implementation to use for every synchronous request
-         */
-        public Configuration httpClient(CloseableHttpClient httpClient) {
-            this.syncClient = httpClient;
-            return this;
-        }
-
-        /**
-         * Set the asynchronous AbstractHttpAsyncClient implementation to use for every asynchronous request
-         */
-        public Configuration asyncHttpClient(CloseableHttpAsyncClient asyncHttpClient) {
-            this.asyncClient = asyncHttpClient;
-            return this;
-        }
-
-        /**
-         * Set a proxy
-         */
-        public Configuration proxy(HttpHost proxy) {
-            this.proxy = proxy;
-            return this;
-        }
-
-        /**
-         * Set the ObjectMapper implementation to use for Response to Object binding
-         *
-         * @param objectMapper Custom implementation of ObjectMapper interface
-         */
-        public Configuration objectMapper(ObjectMapper objectMapper) {
-            this.objectMapper = objectMapper;
-            return this;
-        }
-
-        /**
-         * Set the connection timeout and socket timeout
-         *
-         * @param connectionTimeout The timeout until a connection with the server is established (in milliseconds). Default is 10000. Set to zero to disable the timeout.
-         * @param socketTimeout     The timeout to receive data (in milliseconds). Default is 60000. Set to zero to disable the timeout.
-         */
-        public Configuration timeouts(int connectionTimeout, int socketTimeout) {
-            this.connectionTimeout = connectionTimeout;
-            this.socketTimeout = socketTimeout;
-            return this;
-        }
-
-//        /**
-//         * Set the concurrency levels
-//         *
-//         * @param maxTotal    Defines the overall connection limit for a connection pool. Default is 200.
-//         * @param maxPerRoute Defines a connection limit per one HTTP route (this can be considered a per target host limit). Default is 20.
-//         */
-//        public Configuration concurrency(int maxTotal, int maxPerRoute) {
-//            this.maxTotal = maxTotal;
-//            this.maxPerRoute = maxPerRoute;
-//            return this;
-//        }
-
-        /**
-         * Set the concurrency levels
-         *
-         * @param maxTotal Defines the overall connection limit for a connection pool. Default is 20.
-         */
-        public Configuration concurrency(int maxTotal) {
-            this.maxTotal = maxTotal;
-            return this;
-        }
-
-        /**
-         * Configure the retry policy for this client. this feature is disabled if nothing is set
-         *
-         * @param retryPolicy The Failsafe's RetryPolicy to be used on thi client.
-         */
-        public Configuration retryPolicy(RetryPolicy retryPolicy) {
-            failsafe = failsafe == null ? Failsafe.with(retryPolicy) : failsafe.with(retryPolicy);
-            return this;
-        }
-
-        /**
-         * Configure the circuit breaker for this client. this feature is disabled if nothing is set
-         *
-         * @param circuitBreaker The Failsafe's CircuitBreaker to be used on thi client.
-         */
-        public Configuration circuitBreaker(CircuitBreaker circuitBreaker) {
-            failsafe = failsafe == null ? Failsafe.with(circuitBreaker) : failsafe.with(circuitBreaker);
-            return this;
-        }
-
-        public Configuration onFailedAttempt(CheckedConsumer<Exception> onFailedAttempt) {
-            this.failsafe = this.failsafe == null ? Failsafe.with(new RetryPolicy()) : this.failsafe.onFailedAttempt(onFailedAttempt);
-            return this;
-        }
-
-        public Configuration onRetriesExceeded(CheckedConsumer<Exception> onRetriesExceeded) {
-            this.failsafe = this.failsafe == null ? Failsafe.with(new RetryPolicy()) : this.failsafe.onRetriesExceeded(onRetriesExceeded);
-            return this;
-        }
-
-        public Configuration failsafe(SyncFailsafe<Object> failsafe) {
-            this.failsafe = failsafe;
-            return this;
-        }
-
-        //Only applicable for the base url
-        private String resolveUrl(String url) {
-            return urlTransformer.apply(baseUrl) + url;
-        }
-
-        Map<String, Object> getDefaultHeaders() {
-            return defaultHeaders;
-        }
-
-        CloseableHttpAsyncClient getAsyncClient() {
-            return asyncClient;
-        }
-
-        CloseableHttpClient getSyncClient() {
-            return syncClient;
-        }
-
-        ObjectMapper getObjectMapper() {
-            return objectMapper;
-        }
-
-        SyncFailsafe<Object> getFailsafe() {
-            return failsafe;
-        }
     }
 
 }

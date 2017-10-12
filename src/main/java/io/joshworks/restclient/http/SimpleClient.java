@@ -1,6 +1,5 @@
 package io.joshworks.restclient.http;
 
-import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequestWithBody;
 
@@ -9,20 +8,13 @@ import io.joshworks.restclient.request.HttpRequestWithBody;
  */
 public class SimpleClient {
 
-    private static RestClient client = RestClient.newClient().build();
-    private static ObjectMapper mapper = new JsonMapper();
-
-    public static void objectMapper(ObjectMapper mapper) {
-        SimpleClient.mapper = mapper;
-        client.shutdown();
-        client = null;
-    }
+    private static RestClient client;
 
     private static RestClient getClient() {
         if (client == null) {
             synchronized (RestClient.class) {
                 if (client == null) {
-                    client = RestClient.newClient().objectMapper(mapper).build();
+                    client = RestClient.builder().build();
                 }
             }
         }

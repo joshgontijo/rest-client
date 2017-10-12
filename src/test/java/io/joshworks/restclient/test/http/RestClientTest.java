@@ -25,9 +25,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.test.http;
 
+import io.joshworks.restclient.http.ClientBuilder;
 import io.joshworks.restclient.http.ClientContainer;
 import io.joshworks.restclient.http.Headers;
 import io.joshworks.restclient.http.HttpResponse;
+import io.joshworks.restclient.http.JsonMapper;
 import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.RestClient;
 import io.joshworks.restclient.http.async.Callback;
@@ -35,7 +37,6 @@ import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import io.joshworks.restclient.test.helper.GetResponse;
-import io.joshworks.restclient.http.JsonMapper;
 import net.jodah.failsafe.CircuitBreaker;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
@@ -78,7 +79,7 @@ public class RestClientTest {
 
     @Before
     public void setUp() {
-        client = RestClient.newClient().build();
+        client = RestClient.builder().build();
         lock = new CountDownLatch(1);
         status = false;
     }
@@ -520,7 +521,7 @@ public class RestClientTest {
     public void testDefaultHeaders() throws RestClientException, JSONException, IOException {
         RestClient customClient = null;
         try {
-            customClient = RestClient.newClient()
+            customClient = RestClient.builder()
                     .defaultHeader("X-Custom-Header", "hello")
                     .defaultHeader("user-agent", "foobar")
                     .build();
@@ -551,22 +552,24 @@ public class RestClientTest {
     public void testSetTimeouts() throws IOException {
         RestClient customClient = null;
         try {
-            int timeout = 2000;
-            customClient = RestClient.newClient().timeouts(timeout, 10000).build();
+            int timeout = 3000;
+            customClient = RestClient.builder().timeouts(timeout, 10000).build();
             String address = "http://" + findAvailableIpAddress() + "/";
             long start = System.currentTimeMillis();
             try {
                 client.get("http://" + address + "/").asString();
             } catch (Exception e) {
-                if (System.currentTimeMillis() - start >= timeout) { // Add 100ms for code execution
-                    fail();
+                long diff = System.currentTimeMillis() - start;
+                if (diff >= timeout) { // Add 100ms for code execution
+                    fail("Expected timeout of less than " + timeout + ", got " + diff);
                 }
             }
 
         } finally {
-            customClient.shutdown();
+            if (customClient != null) {
+                customClient.shutdown();
+            }
         }
-
     }
 
     @Test
@@ -610,13 +613,13 @@ public class RestClientTest {
 //        RestClient firstClient = null;
 //        RestClient secondClient = null;
 //        try {
-//            firstClient = RestClient.newClient().concurrency(10).build();
+//            firstClient = RestClient.builder().concurrency(10).build();
 //
 //            long start = System.currentTimeMillis();
 //            makeParallelRequests(firstClient);
 //            long smallerConcurrencyTime = (System.currentTimeMillis() - start);
 //
-//            secondClient = RestClient.newClient().concurrency(20).build();
+//            secondClient = RestClient.builder().concurrency(20).build();
 //            start = System.currentTimeMillis();
 //            makeParallelRequests(secondClient);
 //            long higherConcurrencyTime = (System.currentTimeMillis() - start);
@@ -787,15 +790,15 @@ public class RestClientTest {
 
     @Test
     public void multipleClients() throws RestClientException, IOException {
-        RestClient client1 = RestClient.newClient().build();
+        RestClient client1 = RestClient.builder().build();
         int status = client1.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
 
-        RestClient client2 = RestClient.newClient().build();
+        RestClient client2 = RestClient.builder().build();
         status = client2.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
 
-        RestClient client3 = RestClient.newClient().build();
+        RestClient client3 = RestClient.builder().build();
         status = client3.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
 
@@ -804,10 +807,29 @@ public class RestClientTest {
         client3.shutdown();
     }
 
+    @Test
+    public void multipleClients_sameBuilder() throws RestClientException, IOException {
+        ClientBuilder builder = RestClient.builder();
+        RestClient client1 = builder.build();
+        int status = client1.get("http://httpbin.org/get").asString().getStatus();
+        assertEquals(200, status);
+        client1.shutdown();
+
+        RestClient client2 = builder.build();
+        status = client2.get("http://httpbin.org/get").asString().getStatus();
+        assertEquals(200, status);
+        client2.shutdown();
+
+        RestClient client3 = builder.build();
+        status = client3.get("http://httpbin.org/get").asString().getStatus();
+        assertEquals(200, status);
+        client3.shutdown();
+    }
+
     //FIXME
 //    @Test
 //    public void retry() throws RestClientException, IOException {
-//        RestClient retryClient = RestClient.newClient()
+//        RestClient retryClient = RestClient.builder()
 //                .retryPolicy(new RetryPolicy().withMaxRetries(2))
 //                .build();
 //        int status = retryClient.get("http://dummy-url.abc").asString().getStatus();
@@ -817,7 +839,7 @@ public class RestClientTest {
     @Test
     public void fallbackResponse() throws RestClientException, IOException {
         String fallback = "FALLBACK-DATA";
-        RestClient retryClient = RestClient.newClient().build();
+        RestClient retryClient = RestClient.builder().build();
 
         HttpResponse<String> fallbackResponse = retryClient.get("http://localhost:1234/invalid-endpoint")
                 .withFallback(fallback)
@@ -862,7 +884,7 @@ public class RestClientTest {
     public void testObjectMapperRead() throws RestClientException, IOException {
         RestClient customClient = null;
         try {
-            customClient = RestClient.newClient()
+            customClient = RestClient.builder()
                     .objectMapper(new JsonMapper())
                     .build();
 
@@ -883,7 +905,7 @@ public class RestClientTest {
     public void testObjectMapperWrite() throws RestClientException, IOException {
         RestClient customClient = null;
         try {
-            customClient = RestClient.newClient()
+            customClient = RestClient.builder()
                     .objectMapper(new JsonMapper())
                     .build();
 
@@ -932,7 +954,7 @@ public class RestClientTest {
             CircuitBreaker circuitBreaker = new CircuitBreaker()
                     .withFailureThreshold(1);
 
-            customClient = RestClient.newClient()
+            customClient = RestClient.builder()
                     .baseUrl("http://localhost:1234")
                     .circuitBreaker(circuitBreaker)
                     .build();
@@ -955,7 +977,7 @@ public class RestClientTest {
 
     @Test
     public void urlTransformer() {
-        RestClient client = RestClient.newClient()
+        RestClient client = RestClient.builder()
                 .baseUrl("http://invalid-url.abc")
                 .urlTransformer((url) -> "http://httpbin.org")
                 .build();
@@ -969,7 +991,7 @@ public class RestClientTest {
     public void baseUrl() throws Exception {
         RestClient customClient = null;
         try {
-            customClient = RestClient.newClient()
+            customClient = RestClient.builder()
                     .baseUrl("http://httpbin.org")
                     .build();
 

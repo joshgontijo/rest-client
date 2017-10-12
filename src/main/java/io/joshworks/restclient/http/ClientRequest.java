@@ -44,25 +44,24 @@ public class ClientRequest {
     public final ObjectMapper objectMapper;
     public final String url;
     public final HttpMethod httpMethod;
-
-    //failsafe - can be modified by HttpRequest
     public SyncFailsafe<Object> failsafe;
 
-    ClientRequest(HttpMethod httpMethod, String url, RestClient.Configuration config) {
+    //failsafe - can be modified by HttpRequest
 
-        this.syncClient = config.getSyncClient();
-        this.asyncClient = config.getAsyncClient();
-        this.defaultHeaders = config.getDefaultHeaders();
-        this.objectMapper = config.getObjectMapper();
+    ClientRequest(HttpMethod httpMethod, String url, CloseableHttpClient syncClient, CloseableHttpAsyncClient asyncClient, Map<String, Object> defaultHeaders, ObjectMapper objectMapper, SyncFailsafe<Object> failsafe) {
         this.url = url;
         this.httpMethod = httpMethod;
-        this.failsafe = config.getFailsafe();
+        this.syncClient = syncClient;
+        this.asyncClient = asyncClient;
+        this.defaultHeaders = defaultHeaders;
+        this.objectMapper = objectMapper;
+        this.failsafe = failsafe;
     }
 
     private static final String CONTENT_TYPE = "content-type";
     private static final String ACCEPT_ENCODING_HEADER = "accept-encoding";
     private static final String USER_AGENT_HEADER = "user-agent";
-    private static final String USER_AGENT = "restclient-java/1.3.11";
+    private static final String USER_AGENT = "restclient-java/0.2.2";
 
     private static <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(
             final Class<T> responseClass,
