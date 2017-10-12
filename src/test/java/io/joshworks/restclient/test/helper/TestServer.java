@@ -5,7 +5,12 @@ import io.joshworks.snappy.SnappyServer;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.joshworks.snappy.SnappyServer.*;
+import static io.joshworks.snappy.SnappyServer.delete;
+import static io.joshworks.snappy.SnappyServer.enableTracer;
+import static io.joshworks.snappy.SnappyServer.get;
+import static io.joshworks.snappy.SnappyServer.options;
+import static io.joshworks.snappy.SnappyServer.post;
+import static io.joshworks.snappy.SnappyServer.put;
 import static io.joshworks.snappy.parser.MediaTypes.produces;
 
 /**
@@ -15,52 +20,36 @@ public class TestServer {
 
     private Map<String, String> dataSink = new HashMap<>();
 
-    public void start() {
-        get("/get", exchange -> {
-        });
-
+    public static void start() {
+        get("/hello", exchange -> exchange.send("Hello"), produces("txt"));
+        get("/hello/{name}", exchange -> exchange.send(new TestData(exchange.pathParameter("name"))));
+        get("/get", exchange -> exchange.status(200).end());
         get("/500", exchange -> exchange.status(500));
+        get("/echo", exchange -> {
+            Map<String, Object> echoResponse = new HashMap<>();
+            echoResponse.put("headers", exchange.headers());
+            echoResponse.put("queryParams", exchange.queryParameters());
+            echoResponse.put("path", exchange.path());
 
-        get("/getJson/{id}", exchange -> {
-            String id = exchange.pathParameter("id");
-            String data = dataSink.get(id);
-            if (data == null) {
-                exchange.status(404);
-                return;
-            }
-            exchange.send(data);
-        }, produces("json"));
-
-        get("/getJson", exchange -> exchange.send(dataSink.values()));
-
-        post("/postJson/{id}", exchange -> {
-            String id = exchange.pathParameter("id");
-            String body = exchange.body().asString();
-            dataSink.put(id, body);
-            exchange.send(body); //echo
+            exchange.send(echoResponse);
         });
 
-        post("/putJson/{id}", exchange -> {
-            String id = exchange.pathParameter("id");
-            String body = exchange.body().asString();
-            dataSink.put(id, body);
-            exchange.send(body); //echo
-        });
+        //echo
+        post("/echoJson", exchange -> exchange.send(exchange.body().asObject(TestData.class)));
+        put("/echoJson", exchange -> exchange.send(exchange.body().asObject(TestData.class)));
+        post("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));
+        put("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));
+        delete("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));
+        options("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));
 
-        delete("/deleteJson/{id}", exchange -> {
-            String id = exchange.pathParameter("id");
-            if (!dataSink.containsKey(id)) {
-                exchange.status(404);
-                return;
-            }
-            dataSink.remove(id);
-        });
+
+        get("/testData", exchange -> exchange.send(new TestData("yolo")));
 
         enableTracer();
         SnappyServer.start();
     }
 
-    public void stop() {
+    public static void stop() {
         SnappyServer.stop();
     }
 

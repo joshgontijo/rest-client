@@ -29,14 +29,14 @@ import io.joshworks.restclient.http.ClientBuilder;
 import io.joshworks.restclient.http.ClientContainer;
 import io.joshworks.restclient.http.Headers;
 import io.joshworks.restclient.http.HttpResponse;
-import io.joshworks.restclient.http.JsonMapper;
 import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.RestClient;
 import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
-import io.joshworks.restclient.test.helper.GetResponse;
+import io.joshworks.restclient.test.helper.TestData;
+import io.joshworks.restclient.test.helper.TestServer;
 import net.jodah.failsafe.CircuitBreaker;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
@@ -46,6 +46,7 @@ import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
@@ -77,6 +78,8 @@ public class RestClientTest {
 
     private RestClient client;
 
+    private static final String BASE_URL = "http://localhost:9000";
+
     @Before
     public void setUp() {
         client = RestClient.builder().build();
@@ -91,8 +94,14 @@ public class RestClientTest {
         }
     }
 
+    @BeforeClass
+    public static void startServer() throws IOException {
+        TestServer.start();
+    }
+
     @AfterClass
     public static void shutdownContainer() throws IOException {
+        TestServer.stop();
         ClientContainer.shutdown();
     }
 
@@ -107,34 +116,46 @@ public class RestClientTest {
         throw new RuntimeException("Couldn't find an available IP address in the range of 192.168.0.100-255");
     }
 
+
+
     @Test
-    public void testRequests() throws JSONException, RestClientException {
-        HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/post").header("accept", "application/json").field("param1", "value1").field("param2", "bye").asJson();
-
-        assertTrue(jsonResponse.getHeaders().size() > 0);
-        assertTrue(jsonResponse.getBody().toString().length() > 0);
-        assertFalse(jsonResponse.getRawBody() == null);
-        assertEquals(200, jsonResponse.getStatus());
-
-        JsonNode json = jsonResponse.getBody();
-        assertFalse(json.isArray());
-        assertNotNull(json.getObject());
-        assertNotNull(json.getArray());
-        assertEquals(1, json.getArray().length());
-        assertNotNull(json.getArray().get(0));
+    public void simpleGet() throws JSONException, RestClientException {
+        HttpResponse<String> response = client.get(BASE_URL + "/hello").asString();
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().isEmpty());
     }
 
     @Test
-    public void testGet() throws JSONException, RestClientException {
-        HttpResponse<JsonNode> response = client.get("http://httpbin.org/get?name=mark").asJson();
-        assertEquals(response.getBody().getObject().getJSONObject("args").getString("name"), "mark");
-
-        response = client.get("http://httpbin.org/get").queryString("name", "mark2").asJson();
-        assertEquals(response.getBody().getObject().getJSONObject("args").getString("name"), "mark2");
+    public void simplePost() throws JSONException, RestClientException {
+        String message = "hello";
+        HttpResponse<String> response = client.post(BASE_URL + "/echoPlain").body(message).asString();
+        assertEquals(message, response.getBody());
     }
 
     @Test
-    public void testGetUTF8() throws RestClientException {
+    public void simplePut() throws JSONException, RestClientException {
+        String message = "hello";
+        HttpResponse<String> response = client.put(BASE_URL + "/echoPlain").body(message).asString();
+        assertEquals(message, response.getBody());
+    }
+
+    @Test
+    public void simpleDelete() throws JSONException, RestClientException {
+        String message = "hello";
+        HttpResponse<String> response = client.delete(BASE_URL + "/echoPlain").body(message).asString();
+        assertEquals(message, response.getBody());
+    }
+
+    @Test
+    public void simpleOptions() throws JSONException, RestClientException {
+        TestData testData = new TestData("yolo");
+        HttpResponse<String> response = client.options(BASE_URL + "/echoPlain").body(testData).asString();
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().isEmpty());
+    }
+
+    @Test
+    public void queryParamUTF8() throws RestClientException {
         HttpResponse<JsonNode> response = client.get("http://httpbin.org/get").queryString("param3", "こんにちは").asJson();
 
         assertEquals(response.getBody().getObject().getJSONObject("args").getString("param3"), "こんにちは");
@@ -881,50 +902,18 @@ public class RestClientTest {
 //    }
 
     @Test
-    public void testObjectMapperRead() throws RestClientException, IOException {
-        RestClient customClient = null;
-        try {
-            customClient = RestClient.builder()
-                    .objectMapper(new JsonMapper())
-                    .build();
+    public void defaultObjectMapper() throws RestClientException, IOException {
+        TestData testData = new TestData("yolo");
+        HttpResponse<TestData> getResponse = client.post(BASE_URL + "/echoJson")
+                .header("accept", "application/json")
+                .header("Content-Type", "application/json")
+                .body(testData).asObject(TestData.class);
 
-
-            GetResponse getResponseMock = new GetResponse();
-            getResponseMock.setUrl("http://httpbin.org/get");
-
-            HttpResponse<GetResponse> getResponse = customClient.get(getResponseMock.getUrl()).asObject(GetResponse.class);
-
-            assertEquals(200, getResponse.getStatus());
-            assertEquals(getResponse.getBody().getUrl(), getResponseMock.getUrl());
-        } finally {
-            customClient.shutdown();
-        }
+        assertEquals(200, getResponse.getStatus());
+        assertNotNull(getResponse.getBody());
+        assertEquals(testData, getResponse.getBody());
     }
 
-    @Test
-    public void testObjectMapperWrite() throws RestClientException, IOException {
-        RestClient customClient = null;
-        try {
-            customClient = RestClient.builder()
-                    .objectMapper(new JsonMapper())
-                    .build();
-
-            GetResponse postResponseMock = new GetResponse();
-            postResponseMock.setUrl("http://httpbin.org/post");
-
-            HttpResponse<JsonNode> postResponse = customClient.post(postResponseMock.getUrl())
-                    .header("accept", "application/json")
-                    .header("Content-Type", "application/json")
-                    .body(postResponseMock)
-                    .asJson();
-
-            assertEquals(200, postResponse.getStatus());
-            assertEquals(postResponse.getBody().getObject().getString("data"), "{\"url\":\"http://httpbin.org/post\"}");
-        } finally {
-            customClient.shutdown();
-        }
-
-    }
 
     @Test
     public void testPostProvidesSortedParams() throws IOException {
