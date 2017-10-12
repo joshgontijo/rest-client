@@ -9,8 +9,6 @@ import net.jodah.failsafe.SyncFailsafe;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpOptions;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -216,10 +214,10 @@ public class ClientRequest {
                 reqObj = new HttpPatchWithBody(urlToRequest);
                 break;
             case OPTIONS:
-                reqObj = new HttpOptions(urlToRequest);
+                reqObj = new HttpOptionsWithBody(urlToRequest);
                 break;
             case HEAD:
-                reqObj = new HttpHead(urlToRequest);
+                reqObj = new HttpHeadWithBody(urlToRequest);
                 break;
         }
 
