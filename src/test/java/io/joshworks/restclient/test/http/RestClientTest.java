@@ -41,24 +41,20 @@ import net.jodah.failsafe.CircuitBreaker;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -68,12 +64,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+;
+
 public class RestClientTest {
 
-    private CountDownLatch lock;
     private boolean status;
 
     private RestClient client;
@@ -83,29 +81,28 @@ public class RestClientTest {
     @Before
     public void setUp() {
         client = RestClient.builder().build();
-        lock = new CountDownLatch(1);
         status = false;
     }
 
     @After
-    public void shutdown() throws IOException {
+    public void shutdown() {
         if (client != null) {
             client.shutdown();
         }
     }
 
     @BeforeClass
-    public static void startServer() throws IOException {
+    public static void startServer() {
         TestServer.start();
     }
 
     @AfterClass
-    public static void shutdownContainer() throws IOException {
+    public static void shutdownContainer() {
         TestServer.stop();
         ClientContainer.shutdown();
     }
 
-    private String findAvailableIpAddress() throws IOException {
+    private String findAvailableIpAddress() throws Exception {
         for (int i = 100; i <= 255; i++) {
             String ip = "192.168.1." + i;
             if (!InetAddress.getByName(ip).isReachable(1000)) {
@@ -117,142 +114,173 @@ public class RestClientTest {
     }
 
 
-
     @Test
-    public void simpleGet() throws JSONException, RestClientException {
+    public void simpleGet() {
         HttpResponse<String> response = client.get(BASE_URL + "/hello").asString();
+        assertEquals(200, response.getStatus());
         assertNotNull(response.getBody());
         assertFalse(response.getBody().isEmpty());
     }
 
     @Test
-    public void simplePost() throws JSONException, RestClientException {
+    public void simplePost() {
         String message = "hello";
         HttpResponse<String> response = client.post(BASE_URL + "/echoPlain").body(message).asString();
+        assertEquals(200, response.getStatus());
         assertEquals(message, response.getBody());
     }
 
     @Test
-    public void simplePut() throws JSONException, RestClientException {
+    public void simplePut() {
         String message = "hello";
         HttpResponse<String> response = client.put(BASE_URL + "/echoPlain").body(message).asString();
+        assertEquals(200, response.getStatus());
         assertEquals(message, response.getBody());
     }
 
     @Test
-    public void simpleDelete() throws JSONException, RestClientException {
+    public void simpleDelete() {
         String message = "hello";
         HttpResponse<String> response = client.delete(BASE_URL + "/echoPlain").body(message).asString();
+        assertEquals(200, response.getStatus());
         assertEquals(message, response.getBody());
     }
 
     @Test
-    public void simpleOptions() throws JSONException, RestClientException {
-        TestData testData = new TestData("yolo");
-        HttpResponse<String> response = client.options(BASE_URL + "/echoPlain").body(testData).asString();
-        assertNotNull(response.getBody());
-        assertFalse(response.getBody().isEmpty());
+    public void simpleOptions() {
+        String message = "hello";
+        HttpResponse<String> response = client.options(BASE_URL + "/echoPlain").body(message).asString();
+        assertEquals(200, response.getStatus());
+        assertEquals(message, response.getBody());
     }
 
     @Test
-    public void queryParamUTF8() throws RestClientException {
-        HttpResponse<JsonNode> response = client.get("http://httpbin.org/get").queryString("param3", "こんにちは").asJson();
-
-        assertEquals(response.getBody().getObject().getJSONObject("args").getString("param3"), "こんにちは");
+    public void simpleHead() {
+        HttpResponse<String> response = client.head(BASE_URL + "/echoPlain").asString();
+        assertEquals(200, response.getStatus());
+        assertNull(response.getBody());
     }
 
     @Test
-    public void testPostUTF8() throws RestClientException {
-        HttpResponse<JsonNode> response = client.post("http://httpbin.org/post").field("param3", "こんにちは").asJson();
-
-        assertEquals(response.getBody().getObject().getJSONObject("form").getString("param3"), "こんにちは");
+    public void nullBody() {
+        HttpResponse<String> response = client.head(BASE_URL + "/nullBody").asString();
+        assertEquals(200, response.getStatus());
+        assertNull(response.getBody());
     }
 
     @Test
-    public void testPostBinaryUTF8() throws RestClientException, URISyntaxException {
-        HttpResponse<JsonNode> response = client.post("http://httpbin.org/post").field("param3", "こんにちは").field("file", new File(getClass().getResource("/test").toURI())).asJson();
+    public void queryParamUTF8() {
+        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString("param3", "こんにちは").asJson();
+        assertEquals(response.getBody().getObject().getJSONObject("queryParams").getJSONArray("param3").get(0).toString(), "こんにちは");
+    }
+
+    @Test
+    @Ignore //FIXME blocked by https://github.com/josueeduardo/snappy/issues/3
+    public void postUTF8() {
+        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+                .field("param3", "こんにちは").asJson();
+        assertEquals(response.getBody().getObject().getJSONArray("param3").get(0), "こんにちは");
+    }
+
+    @Test
+    @Ignore //FIXME blocked by https://github.com/josueeduardo/snappy/issues/3
+    public void postBinaryUTF8() throws Exception {
+        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+                .field("param3", "こんにちは")
+                .field("file", new File(getClass().getResource("/test").toURI())).asJson();
 
         assertEquals("This is a test file", response.getBody().getObject().getJSONObject("files").getString("file"));
         assertEquals("こんにちは", response.getBody().getObject().getJSONObject("form").getString("param3"));
     }
 
     @Test
-    public void testPostRawBody() throws RestClientException, URISyntaxException, IOException {
+    public void postRawBody() {
         String sourceString = "'\"@こんにちは-test-123-" + Math.random();
         byte[] sentBytes = sourceString.getBytes();
 
-        HttpResponse<JsonNode> response = client.post("http://httpbin.org/post").body(sentBytes).asJson();
-
-        assertEquals(sourceString, response.getBody().getObject().getString("data"));
+        HttpResponse<String> response = client.post(BASE_URL + "/echoPlain").body(sentBytes).asString();
+        assertEquals(sourceString, response.getBody());
     }
 
     @Test
-    public void testCustomUserAgent() throws JSONException, RestClientException {
-        HttpResponse<JsonNode> response = client.get("http://httpbin.org/get?name=mark").header("user-agent", "hello-world").asJson();
-        assertEquals("hello-world", response.getBody().getObject().getJSONObject("headers").getString("User-Agent"));
+    public void redirect301() {
+        HttpResponse<String> response = client.get(BASE_URL + "/redirect301").asString();
+        assertEquals(200, response.getStatus());
+        assertEquals("Hello", response.getBody());
+    }
+
+    @Test
+    public void redirect302() {
+        HttpResponse<String> response = client.get(BASE_URL + "/redirect302").asString();
+        assertEquals(200, response.getStatus());
+        assertEquals("Hello", response.getBody());
+    }
+
+    @Test
+    public void redirect303() {
+        HttpResponse<String> response = client.get(BASE_URL + "/redirect303").asString();
+        assertEquals(200, response.getStatus());
+        assertEquals("Hello", response.getBody());
+    }
+
+
+    @Test
+    public void customUserAgent() {
+        String agent = "hello-world";
+        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").header("user-agent", agent).asJson();
+        assertEquals(agent, response.getBody().getObject().getJSONObject("headers").getJSONArray("user-agent").get(0));
 
         GetRequest getRequest = client.get("http");
         for (Object current : Arrays.asList(0, 1, 2)) {
             getRequest.queryString("name", current);
         }
-
     }
 
     @Test
-    public void testGetMultiple() throws JSONException, RestClientException {
-        for (int i = 1; i <= 20; i++) {
-            HttpResponse<JsonNode> response = client.get("http://httpbin.org/get?try=" + i).asJson();
-            assertEquals(response.getBody().getObject().getJSONObject("args").getString("try"), ((Integer) i).toString());
+    public void getMultiple() {
+        for (int i = 1; i <= 50; i++) {
+            HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo?try=" + i).asJson();
+            assertEquals(response.getBody().getObject().getJSONObject("queryParams").getJSONArray("try").get(0), ((Integer) i).toString());
         }
     }
 
     @Test
-    public void testGetFields() throws JSONException, RestClientException {
-        HttpResponse<JsonNode> response = client.get("http://httpbin.org/get").queryString("name", "mark").queryString("nick", "thefosk").asJson();
-        assertEquals(response.getBody().getObject().getJSONObject("args").getString("name"), "mark");
-        assertEquals(response.getBody().getObject().getJSONObject("args").getString("nick"), "thefosk");
+    public void getFields() {
+        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString("name", "mark").queryString("nick", "thefosk").asJson();
+        assertEquals(response.getBody().getObject().getJSONObject("queryParams").getJSONArray("name").get(0), "mark");
+        assertEquals(response.getBody().getObject().getJSONObject("queryParams").getJSONArray("nick").get(0), "thefosk");
     }
 
     @Test
-    public void testGetFields2() throws JSONException, RestClientException {
-        HttpResponse<JsonNode> response = client.get("http://httpbin.org/get").queryString("email", "hello@hello.com").asJson();
-        assertEquals("hello@hello.com", response.getBody().getObject().getJSONObject("args").getString("email"));
+    public void getFieldsEmailFormat() {
+        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString("email", "hello@hello.com").asJson();
+        assertEquals("hello@hello.com", response.getBody().getObject().getJSONObject("queryParams").getJSONArray("email").get(0));
     }
 
     @Test
-    public void testQueryStringEncoding() throws JSONException, RestClientException {
+    public void queryStringEncoding() {
         String testKey = "email2=someKey&email";
         String testValue = "hello@hello.com";
-        HttpResponse<JsonNode> response = client.get("http://httpbin.org/get").queryString(testKey, testValue).asJson();
-        assertEquals(testValue, response.getBody().getObject().getJSONObject("args").getString(testKey));
+        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString(testKey, testValue).asJson();
+        assertEquals(testValue, response.getBody().getObject().getJSONObject("queryParams").getJSONArray(testKey).get(0));
     }
 
     @Test
-    public void testDelete() throws JSONException, RestClientException {
-        HttpResponse<JsonNode> response = client.delete("http://httpbin.org/delete").asJson();
-        assertEquals(200, response.getStatus());
-
-        response = client.delete("http://httpbin.org/delete").field("name", "mark").asJson();
-        assertEquals("mark", response.getBody().getObject().getJSONObject("form").getString("name"));
+    public void basicAuth() {
+        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").basicAuth("user", "test").asJson();
+        assertEquals("Basic dXNlcjp0ZXN0", response.getBody().getObject().getJSONObject("headers").getJSONArray("Authorization").get(0));
     }
 
     @Test
-    public void testDeleteBody() throws JSONException, RestClientException {
-        String body = "{\"jsonString\":{\"members\":\"members1\"}}";
-        HttpResponse<JsonNode> response = client.delete("http://httpbin.org/delete").body(body).asJson();
-        assertEquals(200, response.getStatus());
-        assertEquals(body, response.getBody().getObject().getString("data"));
-    }
+    @Ignore //FIXME blocked by https://github.com/josueeduardo/snappy/issues/3
+    public void asyncPost() throws Exception {
+        Future<HttpResponse<JsonNode>> future = client.post(BASE_URL + "/echoFormData")
+                .header("accept", "application/json")
+                .header("Content-Type", "x-www-form-urlencoded")
+                .field("param1", "value1")
+                .field("param2", "bye")
+                .asJsonAsync();
 
-    @Test
-    public void testBasicAuth() throws JSONException, RestClientException {
-        HttpResponse<JsonNode> response = client.get("http://httpbin.org/headers").basicAuth("user", "test").asJson();
-        assertEquals("Basic dXNlcjp0ZXN0", response.getBody().getObject().getJSONObject("headers").getString("Authorization"));
-    }
-
-    @Test
-    public void testAsync() throws JSONException, InterruptedException, ExecutionException {
-        Future<HttpResponse<JsonNode>> future = client.post("http://httpbin.org/post").header("accept", "application/json").field("param1", "value1").field("param2", "bye").asJsonAsync();
 
         assertNotNull(future);
         HttpResponse<JsonNode> jsonResponse = future.get();
@@ -271,44 +299,52 @@ public class RestClientTest {
     }
 
     @Test
-    public void testAsyncCallback() throws JSONException, InterruptedException, ExecutionException {
-        client.post("http://httpbin.org/post").header("accept", "application/json").field("param1", "value1").field("param2", "bye").asJsonAsync(new Callback<JsonNode>() {
+    public void asyncCallback() throws Exception {
+        final CountDownLatch lock = new CountDownLatch(1);
+        client.post(BASE_URL + "/echo")
+                .header("accept", "application/json")
+                .field("param1", "value1")
+                .field("param2", "bye")
+                .asJsonAsync(new Callback<JsonNode>() {
 
-            public void failed(RestClientException e) {
-                fail();
-            }
+                    @Override
+                    public void failed(RestClientException e) {
+                        fail();
+                    }
 
-            public void completed(HttpResponse<JsonNode> jsonResponse) {
-                assertTrue(jsonResponse.getHeaders().size() > 0);
-                assertTrue(jsonResponse.getBody().toString().length() > 0);
-                assertFalse(jsonResponse.getRawBody() == null);
-                assertEquals(200, jsonResponse.getStatus());
+                    @Override
+                    public void completed(HttpResponse<JsonNode> jsonResponse) {
+                        assertTrue(jsonResponse.getHeaders().size() > 0);
+                        assertTrue(jsonResponse.getBody().toString().length() > 0);
+                        assertFalse(jsonResponse.getRawBody() == null);
+                        assertEquals(200, jsonResponse.getStatus());
 
-                JsonNode json = jsonResponse.getBody();
-                assertFalse(json.isArray());
-                assertNotNull(json.getObject());
-                assertNotNull(json.getArray());
-                assertEquals(1, json.getArray().length());
-                assertNotNull(json.getArray().get(0));
+                        JsonNode json = jsonResponse.getBody();
+                        assertFalse(json.isArray());
+                        assertNotNull(json.getObject());
+                        assertNotNull(json.getArray());
+                        assertEquals(1, json.getArray().length());
+                        assertNotNull(json.getArray().get(0));
 
-                assertEquals("value1", json.getObject().getJSONObject("form").getString("param1"));
-                assertEquals("bye", json.getObject().getJSONObject("form").getString("param2"));
+                        assertEquals("value1", json.getObject().getJSONObject("form").getString("param1"));
+                        assertEquals("bye", json.getObject().getJSONObject("form").getString("param2"));
 
-                status = true;
-                lock.countDown();
-            }
+                        status = true;
+                        lock.countDown();
+                    }
 
-            public void cancelled() {
-                fail();
-            }
-        });
+                    @Override
+                    public void cancelled() {
+                        fail();
+                    }
+                });
 
         lock.await(10, TimeUnit.SECONDS);
         assertTrue(status);
     }
 
     @Test
-    public void testMultipart() throws JSONException, InterruptedException, ExecutionException, URISyntaxException, RestClientException {
+    public void testMultipart() throws Exception {
         HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/post").field("name", "Mark").field("file", new File(getClass().getResource("/test").toURI())).asJson();
         assertTrue(jsonResponse.getHeaders().size() > 0);
         assertTrue(jsonResponse.getBody().toString().length() > 0);
@@ -328,7 +364,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testMultipartContentType() throws JSONException, InterruptedException, ExecutionException, URISyntaxException, RestClientException {
+    public void testMultipartContentType() throws Exception {
         HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/post").field("name", "Mark").field("file", new File(getClass().getResource("/image.jpg").toURI()), "image/jpeg").asJson();
         assertTrue(jsonResponse.getHeaders().size() > 0);
         assertTrue(jsonResponse.getBody().toString().length() > 0);
@@ -348,7 +384,7 @@ public class RestClientTest {
     }
 
 //    @Test
-//    public void testMultipartInputStreamContentType() throws JSONException, InterruptedException, ExecutionException, URISyntaxException, RestClientException, FileNotFoundException {
+//    public void testMultipartInputStreamContentType()  , URISyntaxException, , FileNotFoundException {
 //        HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/post")
 //                .field("name", "Mark")
 //                .field("file", new FileInputStream(new File(getClass().getResource("/image.jpg").toURI())), ContentType.APPLICATION_OCTET_STREAM, "image.jpg")
@@ -371,7 +407,8 @@ public class RestClientTest {
 //    }
 
     @Test
-    public void testMultipartInputStreamContentTypeAsync() throws JSONException, InterruptedException, ExecutionException, URISyntaxException, RestClientException, FileNotFoundException {
+    public void testMultipartInputStreamContentTypeAsync() throws Exception {
+        final CountDownLatch lock = new CountDownLatch(1);
         client.post("http://httpbin.org/post").field("name", "Mark").field("file", new FileInputStream(new File(getClass().getResource("/test").toURI())), ContentType.APPLICATION_OCTET_STREAM, "test").asJsonAsync(new Callback<JsonNode>() {
 
             public void failed(RestClientException e) {
@@ -409,7 +446,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testMultipartByteContentType() throws JSONException, InterruptedException, ExecutionException, URISyntaxException, RestClientException, IOException {
+    public void testMultipartByteContentType() throws Exception {
         final InputStream stream = new FileInputStream(new File(getClass().getResource("/image.jpg").toURI()));
         final byte[] bytes = new byte[stream.available()];
         stream.read(bytes);
@@ -433,7 +470,9 @@ public class RestClientTest {
     }
 
     @Test
-    public void testMultipartByteContentTypeAsync() throws JSONException, InterruptedException, ExecutionException, URISyntaxException, RestClientException, IOException {
+    public void testMultipartByteContentTypeAsync() throws Exception {
+        final CountDownLatch lock = new CountDownLatch(1);
+
         final InputStream stream = new FileInputStream(new File(getClass().getResource("/test").toURI()));
         final byte[] bytes = new byte[stream.available()];
         stream.read(bytes);
@@ -475,7 +514,9 @@ public class RestClientTest {
     }
 
     @Test
-    public void testMultipartAsync() throws JSONException, InterruptedException, ExecutionException, URISyntaxException, RestClientException {
+    public void testMultipartAsync() throws Exception {
+        final CountDownLatch lock = new CountDownLatch(1);
+
         client.post("http://httpbin.org/post").field("name", "Mark").field("file", new File(getClass().getResource("/test").toURI())).asJsonAsync(new Callback<JsonNode>() {
 
             public void failed(RestClientException e) {
@@ -513,7 +554,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testGzip() throws RestClientException, JSONException {
+    public void testGzip() {
         HttpResponse<JsonNode> jsonResponse = client.get("http://httpbin.org/gzip").asJson();
         assertTrue(jsonResponse.getHeaders().size() > 0);
         assertTrue(jsonResponse.getBody().toString().length() > 0);
@@ -526,7 +567,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testGzipAsync() throws RestClientException, JSONException, InterruptedException, ExecutionException {
+    public void testGzipAsync() throws Exception {
         HttpResponse<JsonNode> jsonResponse = client.get("http://httpbin.org/gzip").asJsonAsync().get();
         assertTrue(jsonResponse.getHeaders().size() > 0);
         assertTrue(jsonResponse.getBody().toString().length() > 0);
@@ -539,7 +580,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testDefaultHeaders() throws RestClientException, JSONException, IOException {
+    public void testDefaultHeaders() {
         RestClient customClient = null;
         try {
             customClient = RestClient.builder()
@@ -564,13 +605,15 @@ public class RestClientTest {
             assertTrue(jsonResponse.getBody().getObject().getJSONObject("headers").has("X-Custom-Header"));
             assertEquals("hello", jsonResponse.getBody().getObject().getJSONObject("headers").getString("X-Custom-Header"));
         } finally {
-            customClient.shutdown();
+            if (customClient != null) {
+                customClient.shutdown();
+            }
         }
 
     }
 
     @Test
-    public void testSetTimeouts() throws IOException {
+    public void testSetTimeouts() throws Exception {
         RestClient customClient = null;
         try {
             int timeout = 3000;
@@ -594,7 +637,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testPathParameters() throws RestClientException {
+    public void testPathParameters() {
         HttpResponse<JsonNode> jsonResponse = client.get("http://httpbin.org/{method}").routeParam("method", "get").queryString("name", "Mark").asJson();
 
         assertEquals(200, jsonResponse.getStatus());
@@ -602,7 +645,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testQueryAndBodyParameters() throws RestClientException {
+    public void testQueryAndBodyParameters() {
         HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/{method}").routeParam("method", "post").queryString("name", "Mark").field("wot", "wat").asJson();
 
         assertEquals(200, jsonResponse.getStatus());
@@ -611,7 +654,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testPathParameters2() throws RestClientException {
+    public void testPathParameters2() {
         HttpResponse<JsonNode> jsonResponse = client.patch("http://httpbin.org/{method}").routeParam("method", "patch").field("name", "Mark").asJson();
 
         assertEquals(200, jsonResponse.getStatus());
@@ -620,7 +663,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testMissingPathParameter() throws RestClientException {
+    public void testMissingPathParameter() {
         try {
             client.get("http://httpbin.org/{method}").routeParam("method222", "get").queryString("name", "Mark").asJson();
             fail();
@@ -630,7 +673,7 @@ public class RestClientTest {
     }
 
 //    @Test
-//    public void parallelTest() throws Exception {
+//    public void parallelTest()  Exception {
 //        RestClient firstClient = null;
 //        RestClient secondClient = null;
 //        try {
@@ -653,16 +696,12 @@ public class RestClientTest {
 //
 //    }
 
-    private void makeParallelRequests(final RestClient restClient) throws InterruptedException {
+    private void makeParallelRequests(final RestClient restClient) throws Exception {
         ExecutorService newFixedThreadPool = Executors.newFixedThreadPool(10);
         final AtomicInteger counter = new AtomicInteger(0);
         for (int i = 0; i < 200; i++) {
             newFixedThreadPool.execute(() -> {
-                try {
-                    restClient.get("http://httpbin.org/get").queryString("index", counter.incrementAndGet()).asJson();
-                } catch (RestClientException e) {
-                    throw new RuntimeException(e);
-                }
+                restClient.get("http://httpbin.org/get").queryString("index", counter.incrementAndGet()).asJson();
             });
         }
 
@@ -671,7 +710,9 @@ public class RestClientTest {
     }
 
     @Test
-    public void testAsyncCustomContentType() throws InterruptedException {
+    public void testAsyncCustomContentType() throws Exception {
+        final CountDownLatch lock = new CountDownLatch(1);
+
         client.post("http://httpbin.org/post").header("accept", "application/json").header("Content-Type", "application/json").body("{\"hello\":\"world\"}").asJsonAsync(new Callback<JsonNode>() {
 
             public void failed(RestClientException e) {
@@ -697,7 +738,9 @@ public class RestClientTest {
     }
 
     @Test
-    public void testAsyncCustomContentTypeAndFormParams() throws InterruptedException {
+    public void testAsyncCustomContentTypeAndFormParams() throws Exception {
+        final CountDownLatch lock = new CountDownLatch(1);
+
         client.post("http://httpbin.org/post").header("accept", "application/json").header("Content-Type", "application/x-www-form-urlencoded").field("name", "Mark").field("hello", "world").asJsonAsync(new Callback<JsonNode>() {
 
             public void failed(RestClientException e) {
@@ -725,7 +768,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testGetQuerystringArray() throws JSONException, RestClientException {
+    public void testGetQuerystringArray() {
         HttpResponse<JsonNode> response = client.get("http://httpbin.org/get").queryString("name", "Mark").queryString("name", "Tom").asJson();
 
         JSONArray names = response.getBody().getObject().getJSONObject("args").getJSONArray("name");
@@ -736,7 +779,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testPostMultipleFiles() throws JSONException, RestClientException, URISyntaxException {
+    public void testPostMultipleFiles() throws Exception {
         HttpResponse<JsonNode> response = client.post("http://httpbin.org/post").field("param3", "wot").field("file1", new File(getClass().getResource("/test").toURI())).field("file2", new File(getClass().getResource("/test").toURI())).asJson();
 
         JSONObject names = response.getBody().getObject().getJSONObject("files");
@@ -749,7 +792,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testGetArray() throws JSONException, RestClientException {
+    public void testGetArray() {
         HttpResponse<JsonNode> response = client.get("http://httpbin.org/get").queryString("name", Arrays.asList("Mark", "Tom")).asJson();
 
         JSONArray names = response.getBody().getObject().getJSONObject("args").getJSONArray("name");
@@ -760,7 +803,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testPostArray() throws JSONException, RestClientException {
+    public void testPostArray() {
         HttpResponse<JsonNode> response = client.post("http://httpbin.org/post").field("name", "Mark").field("name", "Tom").asJson();
 
         JSONArray names = response.getBody().getObject().getJSONObject("form").getJSONArray("name");
@@ -771,7 +814,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testPostCollection() throws JSONException, RestClientException {
+    public void testPostCollection() {
         HttpResponse<JsonNode> response = client.post("http://httpbin.org/post").field("name", Arrays.asList("Mark", "Tom")).asJson();
 
         JSONArray names = response.getBody().getObject().getJSONObject("form").getJSONArray("name");
@@ -782,7 +825,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testCaseInsensitiveHeaders() throws RestClientException {
+    public void testCaseInsensitiveHeaders() {
         GetRequest request = client.get("http://httpbin.org/headers").header("Name", "Marco");
         assertEquals(1, request.getHeaders().size());
         assertEquals("Marco", request.getHeaders().get("name").get(0));
@@ -810,7 +853,7 @@ public class RestClientTest {
 
 
     @Test
-    public void multipleClients() throws RestClientException, IOException {
+    public void multipleClients() throws Exception {
         RestClient client1 = RestClient.builder().build();
         int status = client1.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
@@ -829,7 +872,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void multipleClients_sameBuilder() throws RestClientException, IOException {
+    public void multipleClients_sameBuilder() throws Exception {
         ClientBuilder builder = RestClient.builder();
         RestClient client1 = builder.build();
         int status = client1.get("http://httpbin.org/get").asString().getStatus();
@@ -849,7 +892,7 @@ public class RestClientTest {
 
     //FIXME
 //    @Test
-//    public void retry() throws RestClientException, IOException {
+//    public void retry()  , IOException {
 //        RestClient retryClient = RestClient.builder()
 //                .retryPolicy(new RetryPolicy().withMaxRetries(2))
 //                .build();
@@ -858,7 +901,7 @@ public class RestClientTest {
 //    }
 
     @Test
-    public void fallbackResponse() throws RestClientException, IOException {
+    public void fallbackResponse() throws Exception {
         String fallback = "FALLBACK-DATA";
         RestClient retryClient = RestClient.builder().build();
 
@@ -902,7 +945,7 @@ public class RestClientTest {
 //    }
 
     @Test
-    public void defaultObjectMapper() throws RestClientException, IOException {
+    public void defaultObjectMapper() throws Exception {
         TestData testData = new TestData("yolo");
         HttpResponse<TestData> getResponse = client.post(BASE_URL + "/echoJson")
                 .header("accept", "application/json")
@@ -916,7 +959,7 @@ public class RestClientTest {
 
 
     @Test
-    public void testPostProvidesSortedParams() throws IOException {
+    public void testPostProvidesSortedParams() throws Exception {
         // Verify that fields are encoded into the body in sorted order.
         HttpRequest httpRequest = client.post("test").field("z", "Z").field("y", "Y").field("x", "X").getHttpRequest();
 
@@ -937,7 +980,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void circuitBreaker() throws Exception {
+    public void circuitBreaker() {
         RestClient customClient = null;
         try {
             CircuitBreaker circuitBreaker = new CircuitBreaker()
@@ -977,7 +1020,7 @@ public class RestClientTest {
 
     //TODO add to all other methods
     @Test
-    public void baseUrl() throws Exception {
+    public void baseUrl() {
         RestClient customClient = null;
         try {
             customClient = RestClient.builder()

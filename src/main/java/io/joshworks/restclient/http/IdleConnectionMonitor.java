@@ -13,8 +13,6 @@ import java.util.function.Supplier;
 public class IdleConnectionMonitor extends Thread {
 
     private static final Logger logger = LoggerFactory.getLogger(IdleConnectionMonitor.class);
-
-
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final Supplier<Collection<RestClient>> clients;
 

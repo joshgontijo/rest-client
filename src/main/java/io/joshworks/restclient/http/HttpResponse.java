@@ -152,6 +152,9 @@ public class HttpResponse<T> {
 
     private String readBodyAsString()  {
         try {
+            if(this.rawBody == null) {
+                return null;
+            }
             String charset = getCharset();
             StringBuilder sb = new StringBuilder();
             BufferedReader br = new BufferedReader(new InputStreamReader(this.rawBody, charset));

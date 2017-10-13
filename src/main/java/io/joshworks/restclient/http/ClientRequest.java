@@ -9,6 +9,7 @@ import net.jodah.failsafe.SyncFailsafe;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -43,8 +44,6 @@ public class ClientRequest {
     public final String url;
     public final HttpMethod httpMethod;
     public SyncFailsafe<Object> failsafe;
-
-    //failsafe - can be modified by HttpRequest
 
     ClientRequest(HttpMethod httpMethod, String url, CloseableHttpClient syncClient, CloseableHttpAsyncClient asyncClient, Map<String, Object> defaultHeaders, ObjectMapper objectMapper, SyncFailsafe<Object> failsafe) {
         this.url = url;
@@ -217,7 +216,7 @@ public class ClientRequest {
                 reqObj = new HttpOptionsWithBody(urlToRequest);
                 break;
             case HEAD:
-                reqObj = new HttpHeadWithBody(urlToRequest);
+                reqObj = new HttpHead(urlToRequest);
                 break;
         }
 
@@ -232,7 +231,7 @@ public class ClientRequest {
         }
 
         // Set body
-        if (!(request.getHttpMethod() == HttpMethod.GET || request.getHttpMethod() == HttpMethod.HEAD)) {
+        if (request.getHttpMethod() != HttpMethod.GET && request.getHttpMethod() != HttpMethod.HEAD) {
             if (request.getBody() != null) {
                 HttpEntity entity = request.getBody().getEntity();
                 if (async) {
