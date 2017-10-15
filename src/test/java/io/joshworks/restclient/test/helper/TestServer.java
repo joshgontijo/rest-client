@@ -3,19 +3,16 @@ package io.joshworks.restclient.test.helper;
 import io.joshworks.snappy.Exchange;
 import io.joshworks.snappy.SnappyServer;
 import io.joshworks.snappy.multipart.MultipartExchange;
+import io.joshworks.snappy.multipart.Part;
 import io.undertow.util.HttpString;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import static io.joshworks.snappy.SnappyServer.delete;
-import static io.joshworks.snappy.SnappyServer.enableTracer;
-import static io.joshworks.snappy.SnappyServer.get;
-import static io.joshworks.snappy.SnappyServer.head;
-import static io.joshworks.snappy.SnappyServer.multipart;
-import static io.joshworks.snappy.SnappyServer.options;
-import static io.joshworks.snappy.SnappyServer.post;
-import static io.joshworks.snappy.SnappyServer.put;
+import static io.joshworks.snappy.SnappyServer.*;
 import static io.joshworks.snappy.parser.MediaTypes.produces;
 
 /**
@@ -41,10 +38,10 @@ public class TestServer {
 
         //echo
         get("/echo", exchange -> exchange.send(getRequestData(exchange)));
-        multipart("/echoFormData", exchange -> {
+        multipart("/echoMultipart", exchange -> {
             Map<String, Object> echoResponse = getRequestData(exchange);
             echoResponse.put("body", extractFormData(exchange));
-            exchange.send(echoResponse);
+            exchange.send(echoResponse, "json");
         });
         post("/echoJson", exchange -> exchange.send(exchange.body().asObject(TestData.class)));
         put("/echoJson", exchange -> exchange.send(exchange.body().asObject(TestData.class)));
@@ -53,14 +50,11 @@ public class TestServer {
         delete("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));
         options("/echoPlain", exchange ->exchange.send(exchange.body().asString()), produces("txt"));
         head("/echoPlain", exchange -> exchange.status(200), produces("txt"));
-        multipart("/echoMultipart", exchange -> {
-            Map<String, Object> echoResponse = new HashMap<>();
-            exchange.partNames().forEach(p -> echoResponse.put(p, exchange.part(p)));
-            exchange.send(echoResponse);
-        });
+
 
 
         get("/testData", exchange -> exchange.send(new TestData("yolo")));
+        get("/gzip", exchange -> exchange.send(new TestData("yolo")));
 
         enableTracer();
         SnappyServer.start();
@@ -85,9 +79,27 @@ public class TestServer {
     private static Map<String, Object> extractFormData(MultipartExchange exchange) {
         Map<String, Object> formData = new HashMap<>();
         for (String name : exchange.partNames()) {
-            formData.put(name, exchange.part(name));
+            Part part = exchange.part(name);
+            if(part.file() != null) {
+                Map<String, Object> fileProps= new HashMap<>();
+                fileProps.put("name", part.file().name());
+                fileProps.put("content", readFileContent(part));
+                fileProps.put("type", part.type().toString());
+                formData.put(name, fileProps);
+            } else {
+                formData.put(name, part.value());
+            }
         }
         return formData;
+    }
+
+    private static String readFileContent(Part part) {
+        try {
+            return Files.readAllLines(part.file().path()).stream().collect(Collectors.joining());
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public static void stop() {

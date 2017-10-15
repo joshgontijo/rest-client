@@ -68,7 +68,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-;
 
 public class RestClientTest {
 
@@ -274,7 +273,7 @@ public class RestClientTest {
     @Test
     @Ignore //FIXME blocked by https://github.com/josueeduardo/snappy/issues/3
     public void asyncPost() throws Exception {
-        Future<HttpResponse<JsonNode>> future = client.post(BASE_URL + "/echoFormData")
+        Future<HttpResponse<JsonNode>> future = client.post(BASE_URL + "/echoMultipart")
                 .header("accept", "application/json")
                 .header("Content-Type", "x-www-form-urlencoded")
                 .field("param1", "value1")
@@ -344,92 +343,79 @@ public class RestClientTest {
     }
 
     @Test
-    public void testMultipart() throws Exception {
-        HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/post").field("name", "Mark").field("file", new File(getClass().getResource("/test").toURI())).asJson();
-        assertTrue(jsonResponse.getHeaders().size() > 0);
-        assertTrue(jsonResponse.getBody().toString().length() > 0);
-        assertFalse(jsonResponse.getRawBody() == null);
-        assertEquals(200, jsonResponse.getStatus());
+    public void multipart() throws Exception {
+        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+                .field("name", "Mark")
+                .field("file", new File(getClass().getResource("/test").toURI()))
+                .asJson();
 
-        JsonNode json = jsonResponse.getBody();
+        validateBasicResponseFields(response);
+
+        JsonNode json = response.getBody();
+        assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONObject("file").getString("content"));
+        assertEquals("Mark", json.getObject().getJSONObject("body").getString("name"));
+    }
+
+    @Test
+    public void multipartContentType() throws Exception {
+        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+                .field("name", "Mark")
+                .field("file", new File(getClass().getResource("/image.jpg").toURI()), "image/jpeg")
+                .asJson();
+
+        validateBasicResponseFields(response);
+
+        JsonNode json = response.getBody();
+        assertTrue(json.getObject().getJSONObject("body").getJSONObject("file").getString("type").contains("image/jpeg"));
+        assertEquals("Mark", json.getObject().getJSONObject("body").getString("name"));
+    }
+
+
+    @Test
+    public void multipartInputStreamContentType() throws Exception {
+        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+                .field("name", "Mark")
+                .field("file", new FileInputStream(new File(getClass().getResource("/image.jpg").toURI())), ContentType.APPLICATION_OCTET_STREAM, "image.jpg")
+                .asJson();
+
+        validateBasicResponseFields(response);
+
+        JsonNode json = response.getBody();
+        assertTrue(json.getObject().getJSONObject("body").getJSONObject("file").getString("type").contains(ContentType.APPLICATION_OCTET_STREAM.getMimeType()));
+        assertEquals("Mark", json.getObject().getJSONObject("body").getString("name"));
+    }
+
+    private void validateBasicResponseFields(HttpResponse<JsonNode> response) {
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getHeaders().size() > 0);
+        assertTrue(response.getBody().toString().length() > 0);
+        assertFalse(response.getRawBody() == null);
+
+        JsonNode json = response.getBody();
         assertFalse(json.isArray());
         assertNotNull(json.getObject());
         assertNotNull(json.getArray());
         assertEquals(1, json.getArray().length());
         assertNotNull(json.getArray().get(0));
-        assertNotNull(json.getObject().getJSONObject("files"));
-
-        assertEquals("This is a test file", json.getObject().getJSONObject("files").getString("file"));
-        assertEquals("Mark", json.getObject().getJSONObject("form").getString("name"));
+        assertNotNull(json.getObject().getJSONObject("body"));
+        assertNotNull(json.getObject().getJSONObject("body").getJSONObject("file"));
     }
 
     @Test
-    public void testMultipartContentType() throws Exception {
-        HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/post").field("name", "Mark").field("file", new File(getClass().getResource("/image.jpg").toURI()), "image/jpeg").asJson();
-        assertTrue(jsonResponse.getHeaders().size() > 0);
-        assertTrue(jsonResponse.getBody().toString().length() > 0);
-        assertFalse(jsonResponse.getRawBody() == null);
-        assertEquals(200, jsonResponse.getStatus());
-
-        JsonNode json = jsonResponse.getBody();
-        assertFalse(json.isArray());
-        assertNotNull(json.getObject());
-        assertNotNull(json.getArray());
-        assertEquals(1, json.getArray().length());
-        assertNotNull(json.getArray().get(0));
-        assertNotNull(json.getObject().getJSONObject("files"));
-
-        assertTrue(json.getObject().getJSONObject("files").getString("file").contains("data:image/jpeg"));
-        assertEquals("Mark", json.getObject().getJSONObject("form").getString("name"));
-    }
-
-//    @Test
-//    public void testMultipartInputStreamContentType()  , URISyntaxException, , FileNotFoundException {
-//        HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/post")
-//                .field("name", "Mark")
-//                .field("file", new FileInputStream(new File(getClass().getResource("/image.jpg").toURI())), ContentType.APPLICATION_OCTET_STREAM, "image.jpg")
-//                .asJson();
-//        assertTrue(jsonResponse.getHeaders().size() > 0);
-//        assertTrue(jsonResponse.getBody().toString().length() > 0);
-//        assertFalse(jsonResponse.getRawBody() == null);
-//        assertEquals(200, jsonResponse.getStatus());
-//
-//        JsonNode json = jsonResponse.getBody();
-//        assertFalse(json.isArray());
-//        assertNotNull(json.getObject());
-//        assertNotNull(json.getArray());
-//        assertEquals(1, json.getArray().length());
-//        assertNotNull(json.getArray().get(0));
-//        assertNotNull(json.getObject().getJSONObject("files"));
-//
-//        assertTrue(json.getObject().getJSONObject("files").getString("file").contains("data:application/octet-stream"));
-//        assertEquals("Mark", json.getObject().getJSONObject("form").getString("name"));
-//    }
-
-    @Test
-    public void testMultipartInputStreamContentTypeAsync() throws Exception {
+    public void multipartInputStreamContentTypeAsync() throws Exception {
         final CountDownLatch lock = new CountDownLatch(1);
-        client.post("http://httpbin.org/post").field("name", "Mark").field("file", new FileInputStream(new File(getClass().getResource("/test").toURI())), ContentType.APPLICATION_OCTET_STREAM, "test").asJsonAsync(new Callback<JsonNode>() {
+        client.post(BASE_URL + "/echoMultipart").field("name", "Mark").field("file", new FileInputStream(new File(getClass().getResource("/test").toURI())), ContentType.APPLICATION_OCTET_STREAM, "test").asJsonAsync(new Callback<JsonNode>() {
 
             public void failed(RestClientException e) {
                 fail();
             }
 
             public void completed(HttpResponse<JsonNode> response) {
-                assertTrue(response.getHeaders().size() > 0);
-                assertTrue(response.getBody().toString().length() > 0);
-                assertFalse(response.getRawBody() == null);
-                assertEquals(200, response.getStatus());
+                validateBasicResponseFields(response);
 
                 JsonNode json = response.getBody();
-                assertFalse(json.isArray());
-                assertNotNull(json.getObject());
-                assertNotNull(json.getArray());
-                assertEquals(1, json.getArray().length());
-                assertNotNull(json.getArray().get(0));
-
-                assertEquals("This is a test file", json.getObject().getJSONObject("files").getString("file"));
-                assertEquals("Mark", json.getObject().getJSONObject("form").getString("name"));
+                assertTrue(json.getObject().getJSONObject("body").getJSONObject("file").getString("type").contains(ContentType.APPLICATION_OCTET_STREAM.getMimeType()));
+                assertEquals("Mark", json.getObject().getJSONObject("body").getString("name"));
 
                 status = true;
                 lock.countDown();
@@ -451,53 +437,33 @@ public class RestClientTest {
         final byte[] bytes = new byte[stream.available()];
         stream.read(bytes);
         stream.close();
-        HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/post").field("name", "Mark").field("file", bytes, "image.jpg").asJson();
-        assertTrue(jsonResponse.getHeaders().size() > 0);
-        assertTrue(jsonResponse.getBody().toString().length() > 0);
-        assertFalse(jsonResponse.getRawBody() == null);
-        assertEquals(200, jsonResponse.getStatus());
+        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart").field("name", "Mark").field("file", bytes, "image.jpg").asJson();
 
-        JsonNode json = jsonResponse.getBody();
-        assertFalse(json.isArray());
-        assertNotNull(json.getObject());
-        assertNotNull(json.getArray());
-        assertEquals(1, json.getArray().length());
-        assertNotNull(json.getArray().get(0));
-        assertNotNull(json.getObject().getJSONObject("files"));
-
-        assertTrue(json.getObject().getJSONObject("files").getString("file").contains("data:application/octet-stream"));
-        assertEquals("Mark", json.getObject().getJSONObject("form").getString("name"));
+        JsonNode json = response.getBody();
+        assertTrue(json.getObject().getJSONObject("body").getJSONObject("file").getString("type").contains(ContentType.APPLICATION_OCTET_STREAM.getMimeType()));
+        assertEquals("Mark", json.getObject().getJSONObject("body").getString("name"));
     }
 
     @Test
-    public void testMultipartByteContentTypeAsync() throws Exception {
+    public void multipartByteContentTypeAsync() throws Exception {
         final CountDownLatch lock = new CountDownLatch(1);
 
         final InputStream stream = new FileInputStream(new File(getClass().getResource("/test").toURI()));
         final byte[] bytes = new byte[stream.available()];
         stream.read(bytes);
         stream.close();
-        client.post("http://httpbin.org/post").field("name", "Mark").field("file", bytes, "test").asJsonAsync(new Callback<JsonNode>() {
+        client.post(BASE_URL + "/echoMultipart").field("name", "Mark").field("file", bytes, "test").asJsonAsync(new Callback<JsonNode>() {
 
             public void failed(RestClientException e) {
                 fail();
             }
 
             public void completed(HttpResponse<JsonNode> response) {
-                assertTrue(response.getHeaders().size() > 0);
-                assertTrue(response.getBody().toString().length() > 0);
-                assertFalse(response.getRawBody() == null);
-                assertEquals(200, response.getStatus());
+                validateBasicResponseFields(response);
 
                 JsonNode json = response.getBody();
-                assertFalse(json.isArray());
-                assertNotNull(json.getObject());
-                assertNotNull(json.getArray());
-                assertEquals(1, json.getArray().length());
-                assertNotNull(json.getArray().get(0));
-
-                assertEquals("This is a test file", json.getObject().getJSONObject("files").getString("file"));
-                assertEquals("Mark", json.getObject().getJSONObject("form").getString("name"));
+                assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONObject("file").getString("content"));
+                assertEquals("Mark", json.getObject().getJSONObject("body").getString("name"));
 
                 status = true;
                 lock.countDown();
@@ -514,30 +480,19 @@ public class RestClientTest {
     }
 
     @Test
-    public void testMultipartAsync() throws Exception {
+    public void multipartAsync() throws Exception {
         final CountDownLatch lock = new CountDownLatch(1);
 
-        client.post("http://httpbin.org/post").field("name", "Mark").field("file", new File(getClass().getResource("/test").toURI())).asJsonAsync(new Callback<JsonNode>() {
+        client.post(BASE_URL + "/echoMultipart").field("name", "Mark").field("file", new File(getClass().getResource("/test").toURI())).asJsonAsync(new Callback<JsonNode>() {
 
             public void failed(RestClientException e) {
                 fail();
             }
 
             public void completed(HttpResponse<JsonNode> response) {
-                assertTrue(response.getHeaders().size() > 0);
-                assertTrue(response.getBody().toString().length() > 0);
-                assertFalse(response.getRawBody() == null);
-                assertEquals(200, response.getStatus());
-
                 JsonNode json = response.getBody();
-                assertFalse(json.isArray());
-                assertNotNull(json.getObject());
-                assertNotNull(json.getArray());
-                assertEquals(1, json.getArray().length());
-                assertNotNull(json.getArray().get(0));
-
-                assertEquals("This is a test file", json.getObject().getJSONObject("files").getString("file"));
-                assertEquals("Mark", json.getObject().getJSONObject("form").getString("name"));
+                assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONObject("file").getString("content"));
+                assertEquals("Mark", json.getObject().getJSONObject("body").getString("name"));
 
                 status = true;
                 lock.countDown();
@@ -554,7 +509,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testGzip() {
+    public void gzip() {
         HttpResponse<JsonNode> jsonResponse = client.get("http://httpbin.org/gzip").asJson();
         assertTrue(jsonResponse.getHeaders().size() > 0);
         assertTrue(jsonResponse.getBody().toString().length() > 0);
@@ -567,7 +522,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void testGzipAsync() throws Exception {
+    public void gzipAsync() throws Exception {
         HttpResponse<JsonNode> jsonResponse = client.get("http://httpbin.org/gzip").asJsonAsync().get();
         assertTrue(jsonResponse.getHeaders().size() > 0);
         assertTrue(jsonResponse.getBody().toString().length() > 0);
