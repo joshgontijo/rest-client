@@ -18,13 +18,12 @@ public class ClientContainer {
     private static final IdleConnectionMonitor monitor = new IdleConnectionMonitor(clients::values);
 
     private ClientContainer() {
-
+        Runtime.getRuntime().addShutdownHook(new Thread(ClientContainer::shutdown));
     }
 
     static void addClient(RestClient client) {
         logger.info("New rest client created, id: " + client.id);
         clients.put(client.id, client);
-
     }
 
     static void removeClient(RestClient client) {
@@ -32,13 +31,17 @@ public class ClientContainer {
         clients.remove(client.id);
     }
 
-    public static void shutdown() {
+    public int size() {
+        return clients.size();
+    }
+
+    public synchronized static void shutdown() {
         for (Map.Entry<String, RestClient> clientEntry : clients.entrySet()) {
             logger.info("Shutting down rest client, id: " + clientEntry.getKey());
             try {
-                clientEntry.getValue().shutdown();
+                clientEntry.getValue().close();
             } catch (Exception e) {
-                logger.error("Failed to shutdown client '" + clientEntry.getKey() + "'", e);
+                logger.error("Failed to close client '" + clientEntry.getKey() + "'", e);
             }
         }
 

@@ -36,19 +36,20 @@ import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public class RestClient {
+public class RestClient implements Closeable{
 
     private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
 
     private static final int IDLE_CONNECTION_TIMEOUT = 30;
 
-    final String id;
+    public final String id;
 
     private final Function<String, String> urlTransformer;
     private final ObjectMapper objectMapper;
@@ -131,7 +132,9 @@ public class RestClient {
     /**
      * Close the asynchronous client and its event loop. Use this method to close all the threads and allow an application to exit.
      */
-    public void shutdown() {
+
+    @Override
+    public void close() {
         try {
             // Closing the Sync HTTP client
             if (syncClient != null) {
@@ -148,5 +151,4 @@ public class RestClient {
 
         ClientContainer.removeClient(this);
     }
-
 }

@@ -86,7 +86,7 @@ public class RestClientTest {
     @After
     public void shutdown() {
         if (client != null) {
-            client.shutdown();
+            client.close();
         }
     }
 
@@ -222,6 +222,21 @@ public class RestClientTest {
         assertEquals("Hello", response.getBody());
     }
 
+    @Test
+    public void disableRedirect() {
+        try (RestClient customClient = RestClient.builder()
+                .followRedirect(false)
+                .baseUrl(BASE_URL)
+                .build()) {
+
+            HttpResponse<JsonNode> postResponse = customClient.get("/redirect301")
+                    .header("accept", "application/json")
+                    .header("Content-Type", "application/json")
+                    .asJson();
+
+            assertEquals(301, postResponse.getStatus());
+        }
+    }
 
     @Test
     public void customUserAgent() {
@@ -300,6 +315,7 @@ public class RestClientTest {
     @Test
     public void asyncCallback() throws Exception {
         final CountDownLatch lock = new CountDownLatch(1);
+        //FIXME
         client.post(BASE_URL + "/echo")
                 .header("accept", "application/json")
                 .field("param1", "value1")
@@ -561,7 +577,7 @@ public class RestClientTest {
             assertEquals("hello", jsonResponse.getBody().getObject().getJSONObject("headers").getString("X-Custom-Header"));
         } finally {
             if (customClient != null) {
-                customClient.shutdown();
+                customClient.close();
             }
         }
 
@@ -586,7 +602,7 @@ public class RestClientTest {
 
         } finally {
             if (customClient != null) {
-                customClient.shutdown();
+                customClient.close();
             }
         }
     }
@@ -645,8 +661,8 @@ public class RestClientTest {
 //
 //            assertTrue(higherConcurrencyTime < smallerConcurrencyTime);
 //        } finally {
-//            firstClient.shutdown();
-//            secondClient.shutdown();
+//            firstClient.close();
+//            secondClient.close();
 //        }
 //
 //    }
@@ -821,9 +837,9 @@ public class RestClientTest {
         status = client3.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
 
-        client1.shutdown();
-        client2.shutdown();
-        client3.shutdown();
+        client1.close();
+        client2.close();
+        client3.close();
     }
 
     @Test
@@ -832,17 +848,17 @@ public class RestClientTest {
         RestClient client1 = builder.build();
         int status = client1.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
-        client1.shutdown();
+        client1.close();
 
         RestClient client2 = builder.build();
         status = client2.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
-        client2.shutdown();
+        client2.close();
 
         RestClient client3 = builder.build();
         status = client3.get("http://httpbin.org/get").asString().getStatus();
         assertEquals(200, status);
-        client3.shutdown();
+        client3.close();
     }
 
     //FIXME
@@ -958,7 +974,7 @@ public class RestClientTest {
 
 
         } finally {
-            customClient.shutdown();
+            customClient.close();
         }
     }
 
@@ -976,21 +992,16 @@ public class RestClientTest {
     //TODO add to all other methods
     @Test
     public void baseUrl() {
-        RestClient customClient = null;
-        try {
-            customClient = RestClient.builder()
-                    .baseUrl("http://httpbin.org")
-                    .build();
-
-
+        try (RestClient customClient = RestClient.builder()
+                .baseUrl("http://httpbin.org")
+                .build()) {
             HttpResponse<JsonNode> postResponse = customClient.get("/get")
                     .header("accept", "application/json")
                     .header("Content-Type", "application/json")
                     .asJson();
 
             assertEquals(200, postResponse.getStatus());
-        } finally {
-            customClient.shutdown();
         }
     }
+
 }

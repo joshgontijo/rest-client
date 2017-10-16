@@ -23,7 +23,7 @@ public class SimpleClient {
 
     public static void close() {
         if (client != null) {
-            client.shutdown();
+            client.close();
         }
     }
 

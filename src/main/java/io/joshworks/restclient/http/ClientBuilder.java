@@ -23,12 +23,14 @@ import java.util.function.Function;
 
 public class ClientBuilder {
 
+
     ClientBuilder() {
     }
 
     private int connectionTimeout = 10000;
     private int socketTimeout = 60000;
     private int maxTotal = 20;
+    private boolean followredirect = true;
     private String baseUrl = "";
 //        private int maxPerRoute = 20;
 
@@ -47,6 +49,7 @@ public class ClientBuilder {
         try {
             // Create common default configuration
             RequestConfig clientConfig = RequestConfig.custom()
+                    .setRedirectsEnabled(followredirect)
                     .setConnectTimeout(connectionTimeout)
                     .setSocketTimeout(socketTimeout)
                     .setConnectionRequestTimeout(socketTimeout)
@@ -92,6 +95,11 @@ public class ClientBuilder {
 
     public ClientBuilder defaultHeader(String key, String value) {
         this.defaultHeaders.put(key, value);
+        return this;
+    }
+
+    public ClientBuilder followRedirect(boolean followRedirect) {
+        this.followredirect = followRedirect;
         return this;
     }
 

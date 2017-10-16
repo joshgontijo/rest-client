@@ -93,6 +93,7 @@ public class HttpResponse<T> {
                 }
                 this.rawBody = new ByteArrayInputStream(rawBody);
             } catch (Exception e) {
+                EntityUtils.consumeQuietly(responseEntity);
                 throw new RuntimeException(e);
             }
         }

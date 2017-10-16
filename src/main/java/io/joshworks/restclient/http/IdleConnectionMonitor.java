@@ -17,14 +17,15 @@ public class IdleConnectionMonitor extends Thread {
     private final Supplier<Collection<RestClient>> clients;
 
 
-    public IdleConnectionMonitor(Supplier<Collection<RestClient>> clients) {
+    IdleConnectionMonitor(Supplier<Collection<RestClient>> clients) {
         this.clients = clients;
         super.setDaemon(true);
+        super.setName("restclient-monitor");
         this.start();
     }
 
 
-    public void shutdown() {
+    void shutdown() {
         logger.info("Stopping idle client connection monitor");
         running.set(false);
     }
@@ -50,7 +51,6 @@ public class IdleConnectionMonitor extends Thread {
                     // Close expired connections
                     // Optionally, close connections
                     clients.get().iterator().forEachRemaining(RestClient::closeIdleConnections);
-
                 }
             }
         } catch (InterruptedException ex) {
