@@ -37,6 +37,7 @@ import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import io.joshworks.restclient.test.helper.TestData;
 import io.joshworks.restclient.test.helper.TestServer;
+import io.joshworks.restclient.test.helper.TestUtils;
 import net.jodah.failsafe.CircuitBreaker;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
@@ -370,6 +371,20 @@ public class RestClientTest {
         JsonNode json = response.getBody();
         assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONObject("file").getString("content"));
         assertEquals("Mark", json.getObject().getJSONObject("body").getString("name"));
+    }
+
+    @Test
+    @Ignore
+    public void multipart_async_largeFile() throws Exception {
+        long size = 1073741824; //1GB
+        Future<HttpResponse<String>> response = client.post(BASE_URL + "/upload")
+                .field("name", "Mark")
+                .field("file", TestUtils.mockStream(size), "someFile.txt")
+                .asStringAsync();
+
+        HttpResponse<String> stringHttpResponse = response.get();
+        assertEquals(200, stringHttpResponse.getStatus());
+        assertEquals(size, Long.parseLong(stringHttpResponse.getBody()));
     }
 
     @Test

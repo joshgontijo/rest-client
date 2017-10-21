@@ -6,7 +6,7 @@ import io.joshworks.restclient.request.HttpRequestWithBody;
 /**
  * Created by Josh Gontijo on 6/3/17.
  */
-public class SimpleClient {
+public class Unirest {
 
     private static RestClient client;
 

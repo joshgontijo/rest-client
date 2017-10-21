@@ -25,9 +25,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request;
 
+import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
-import io.joshworks.restclient.http.ClientRequest;
+import io.joshworks.restclient.http.utils.MimeMappings;
 import io.joshworks.restclient.request.body.MultipartBody;
 import io.joshworks.restclient.request.body.RawBody;
 import io.joshworks.restclient.request.body.RequestBodyEntity;
@@ -40,9 +41,10 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public class HttpRequestWithBody extends HttpRequest {
+
+    private static final MimeMappings mappings = MimeMappings.builder().build();
 
     private final ObjectMapper mapper;
     private final ClientRequest config;
@@ -71,8 +73,7 @@ public class HttpRequestWithBody extends HttpRequest {
 
     @Override
     public HttpRequestWithBody basicAuth(String username, String password) {
-        super.basicAuth(username, password);
-        return this;
+        return (HttpRequestWithBody) super.basicAuth(username, password);
     }
 
     @Override
@@ -96,7 +97,7 @@ public class HttpRequestWithBody extends HttpRequest {
     }
 
     public MultipartBody field(String name, File file) {
-        return field(name, file, null);
+        return field(name, file, getFileMime(file));
     }
 
     public MultipartBody field(String name, Object value, String contentType) {
@@ -114,7 +115,7 @@ public class HttpRequestWithBody extends HttpRequest {
     public MultipartBody fields(Map<String, Object> parameters) {
         MultipartBody body = new MultipartBody(this, config);
         if (parameters != null) {
-            for (Entry<String, Object> param : parameters.entrySet()) {
+            for (Map.Entry<String, Object> param : parameters.entrySet()) {
                 if (param.getValue() instanceof File) {
                     body.field(param.getKey(), (File) param.getValue());
                 } else {
@@ -182,4 +183,17 @@ public class HttpRequestWithBody extends HttpRequest {
     public RequestBodyEntity body(JSONArray body) {
         return body(body.toString());
     }
+
+
+    private String getFileMime(File file) {
+        String[] split = file.getName().split(".");
+        if(split.length > 1) {
+            String extension = split[split.length - 1];
+            if(extension != null && !extension.isEmpty()) {
+                return mappings.getMimeType(extension);
+            }
+        }
+        return null;
+    }
+
 }
