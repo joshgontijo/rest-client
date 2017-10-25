@@ -68,7 +68,7 @@ String response = SimpleClient.get("http://my-api.com/v1").asString();
 ```
 
 
-### Fluent async API
+### Async fluent API
 
 ```java
 client.get(BASE_URL + "/hello")
