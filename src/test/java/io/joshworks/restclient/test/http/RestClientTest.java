@@ -175,22 +175,25 @@ public class RestClientTest {
     }
 
     @Test
-    @Ignore //FIXME blocked by https://github.com/josueeduardo/snappy/issues/3
     public void postUTF8() {
+        String value = "こんにちは";
         HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
-                .field("param3", "こんにちは").asJson();
-        assertEquals(response.getBody().getObject().getJSONArray("param3").get(0), "こんにちは");
+                .field("param3", value)
+                .asJson();
+
+        assertEquals(value, response.getBody().getObject().getJSONObject("body").getString("param3"));
     }
 
     @Test
-    @Ignore //FIXME blocked by https://github.com/josueeduardo/snappy/issues/3
     public void postBinaryUTF8() throws Exception {
+        String value = "こんにちは";
         HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
-                .field("param3", "こんにちは")
-                .field("file", new File(getClass().getResource("/test").toURI())).asJson();
+                .field("param3", value)
+                .field("file", new File(getClass().getResource("/test").toURI()))
+                .asJson();
 
-        assertEquals("This is a test file", response.getBody().getObject().getJSONObject("files").getString("file"));
-        assertEquals("こんにちは", response.getBody().getObject().getJSONObject("form").getString("param3"));
+        assertEquals("This is a test file", response.getBody().getObject().getJSONObject("body").getJSONObject("file").getString("content"));
+        assertEquals(value, response.getBody().getObject().getJSONObject("body").getString("param3"));
     }
 
     @Test
@@ -287,11 +290,10 @@ public class RestClientTest {
     }
 
     @Test
-    @Ignore //FIXME blocked by https://github.com/josueeduardo/snappy/issues/3
     public void asyncPost() throws Exception {
         Future<HttpResponse<JsonNode>> future = client.post(BASE_URL + "/echoMultipart")
                 .header("accept", "application/json")
-                .header("Content-Type", "x-www-form-urlencoded")
+                .header("Content-Type", "application/x-www-form-urlencoded")
                 .field("param1", "value1")
                 .field("param2", "bye")
                 .asJsonAsync();
@@ -317,7 +319,7 @@ public class RestClientTest {
     public void asyncCallback() throws Exception {
         final CountDownLatch lock = new CountDownLatch(1);
         //FIXME
-        client.post(BASE_URL + "/echo")
+        client.post(BASE_URL + "/echoMultipart")
                 .header("accept", "application/json")
                 .field("param1", "value1")
                 .field("param2", "bye")
@@ -342,8 +344,8 @@ public class RestClientTest {
                         assertEquals(1, json.getArray().length());
                         assertNotNull(json.getArray().get(0));
 
-                        assertEquals("value1", json.getObject().getJSONObject("form").getString("param1"));
-                        assertEquals("bye", json.getObject().getJSONObject("form").getString("param2"));
+                        assertEquals("value1", jsonResponse.getBody().getObject().getJSONObject("body").getString("param1"));
+                        assertEquals("bye", jsonResponse.getBody().getObject().getJSONObject("body").getString("param2"));
 
                         status = true;
                         lock.countDown();
@@ -511,6 +513,22 @@ public class RestClientTest {
     }
 
     @Test
+    public void asyncComplete() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        client.get(BASE_URL + "/hello")
+                .async(String.class)
+                .completed(resp -> {
+                    assertEquals("Hello", resp.getBody());
+                    latch.countDown();
+                })
+                .request();
+
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            fail();
+        }
+    }
+
+    @Test
     public void multipartAsync() throws Exception {
         final CountDownLatch lock = new CountDownLatch(1);
 
@@ -648,14 +666,10 @@ public class RestClientTest {
         assertEquals(jsonResponse.getBody().getObject().getJSONObject("form").getString("name"), "Mark");
     }
 
-    @Test
+    @Test(expected = RuntimeException.class)
     public void testMissingPathParameter() {
-        try {
-            client.get("http://httpbin.org/{method}").routeParam("method222", "get").queryString("name", "Mark").asJson();
-            fail();
-        } catch (RuntimeException e) {
-            // OK
-        }
+        client.get("http://httpbin.org/{method}").routeParam("method222", "get").queryString("name", "Mark").asJson();
+        fail("Exception was expected");
     }
 
 //    @Test

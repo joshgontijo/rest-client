@@ -16,6 +16,7 @@ Apart from the features provided by Unirest Java, this fork also provides:
 * Independent client configuration
 * Lazy response body parsing
 * Default JsonMapper using Gson
+* New fluent async API
 * Bulk head, Circuit breaker, fallback response and connection retry using [Failsafe](https://github.com/jhalterman/failsafe)
 * Single idle thread monitor for all clients
 
@@ -65,6 +66,18 @@ SimpleClient provides static methods for simple usage with default configuration
 String response = SimpleClient.get("http://my-api.com/v1").asString();
 
 ```
+
+
+### Fluent async API
+
+```java
+client.get(BASE_URL + "/hello")
+        .async(String.class)
+        .completed(resp -> System.out.println(resp.getBody()))
+        .failed((e) -> e.printStackTrace())
+        .request();
+```
+
 
 ### Fallback response
 Fallback provides a default response whenever a service fails, when using with circuit breaker and / or RetryPolicy,

@@ -2,8 +2,8 @@ package io.joshworks.restclient.test.helper;
 
 import io.joshworks.snappy.Exchange;
 import io.joshworks.snappy.SnappyServer;
-import io.joshworks.snappy.multipart.MultipartExchange;
-import io.joshworks.snappy.multipart.Part;
+import io.joshworks.snappy.http.multipart.MultipartExchange;
+import io.joshworks.snappy.http.multipart.Part;
 import io.undertow.util.HttpString;
 
 import java.io.IOException;
@@ -24,7 +24,7 @@ public class TestServer {
 
     public static void start() {
         get("/hello", exchange -> exchange.send("Hello"), produces("txt"));
-        get("/nullBody", Exchange::end, produces("txt"));
+        head("/nullBody", Exchange::end, produces("txt"));
         get("/hello/{name}", exchange -> exchange.send(new TestData(exchange.pathParameter("name"))));
         get("/get", exchange -> exchange.status(200).end());
         get("/500", exchange -> exchange.status(500));
@@ -32,7 +32,7 @@ public class TestServer {
 
         //redirect
         get("/redirect300", exchange -> exchange.status(300).header("Location", "http://localhost:9000/hello"));
-        get("/redirect301", exchange -> exchange.status(301).header("Location", "https://localhost:9000/hello"));
+        get("/redirect301", exchange -> exchange.status(301).header("Location", "http://localhost:9000/hello"));
         get("/redirect302", exchange -> exchange.status(302).header("Location", "http://localhost:9000/hello"));
         get("/redirect303", exchange -> exchange.status(303).header("Location", "http://localhost:9000/hello"));
 

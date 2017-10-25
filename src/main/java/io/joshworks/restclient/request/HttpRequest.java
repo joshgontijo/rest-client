@@ -34,6 +34,7 @@ import io.joshworks.restclient.http.utils.URLParamEncoder;
 import io.joshworks.restclient.request.body.Body;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
+import org.apache.http.HttpHeaders;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -76,7 +77,7 @@ public class HttpRequest extends BaseRequest {
     }
 
     public HttpRequest basicAuth(String username, String password) {
-        header("Authorization", "Basic " + Base64Coder.encodeString(username + ":" + password));
+        header(HttpHeaders.AUTHORIZATION, "Basic " + Base64Coder.encodeString(username + ":" + password));
         return this;
     }
 
@@ -117,7 +118,7 @@ public class HttpRequest extends BaseRequest {
             queryString
                     .append(URLEncoder.encode(name, Constants.UTF_8))
                     .append(Constants.EQUALS)
-                    .append(URLEncoder.encode((value == null) ? "" : value.toString(), Constants.UTF_8));
+                    .append(URLEncoder.encode(value == null ? "" : value.toString(), Constants.UTF_8));
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }

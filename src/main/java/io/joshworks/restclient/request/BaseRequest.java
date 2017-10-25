@@ -30,6 +30,7 @@ import io.joshworks.restclient.http.HttpResponse;
 import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
+import io.joshworks.restclient.request.async.AsyncRequest;
 
 import java.io.InputStream;
 import java.util.concurrent.Future;
@@ -61,6 +62,10 @@ public abstract class BaseRequest {
 
     public HttpResponse<JsonNode> asJson() throws RestClientException {
         return clientRequest.request(httpRequest, JsonNode.class);
+    }
+
+    public <T> AsyncRequest<T> async(Class<T> responseType) throws RestClientException {
+        return new AsyncRequest<>(clientRequest, httpRequest, responseType);
     }
 
     public Future<HttpResponse<JsonNode>> asJsonAsync() {
