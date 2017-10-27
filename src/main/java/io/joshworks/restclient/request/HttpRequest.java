@@ -95,12 +95,12 @@ public class HttpRequest extends BaseRequest {
     }
 
     public HttpRequest contentType(String contentType) {
-        if(contentType == null || contentType.isEmpty()) {
+        if (contentType == null || contentType.isEmpty()) {
             return this;
         }
-        if(!contentType.contains("/")) {
+        if (!contentType.contains("/")) {
             String mimeType = mappings.getMimeType(contentType);
-            if(mimeType != null) {
+            if (mimeType != null) {
                 return this.header(HttpHeaders.CONTENT_TYPE, mimeType);
             }
         }
@@ -158,7 +158,7 @@ public class HttpRequest extends BaseRequest {
     }
 
     public HttpRequest withFallback(Object fallback) {
-        if(clientRequest.failsafe == null) {
+        if (clientRequest.failsafe == null) {
             clientRequest.failsafe = Failsafe.with(new RetryPolicy().withMaxRetries(0));
         }
         clientRequest.failsafe.withFallback(HttpResponse.fallback(fallback));
