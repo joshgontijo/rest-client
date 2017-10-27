@@ -8,7 +8,9 @@ import io.undertow.util.HttpString;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -38,6 +40,7 @@ public class TestServer {
 
         //echo
         get("/echo", exchange -> exchange.send(getRequestData(exchange)));
+        post("/echo", exchange -> exchange.send(getRequestData(exchange)));
         multipart("/echoMultipart", exchange -> {
             Map<String, Object> echoResponse = getRequestData(exchange);
             echoResponse.put("body", extractFormData(exchange));
@@ -59,11 +62,11 @@ public class TestServer {
         put("/echoJson", exchange -> exchange.send(exchange.body().asObject(TestData.class)));
         post("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));
         post("/echoHeaders", exchange -> exchange.send(extractHeaders(exchange)), produces("json"));
+        get("/echoHeaders", exchange -> exchange.send(extractHeaders(exchange)), produces("json"));
         put("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));
         delete("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));
-        options("/echoPlain", exchange ->exchange.send(exchange.body().asString()), produces("txt"));
+        options("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));
         head("/echoPlain", exchange -> exchange.status(200), produces("txt"));
-
 
 
         get("/testData", exchange -> exchange.send(new TestData("yolo")));
@@ -89,18 +92,26 @@ public class TestServer {
         return headers;
     }
 
-    private static Map<String, Object> extractFormData(MultipartExchange exchange) {
-        Map<String, Object> formData = new HashMap<>();
+    private static Map<String, List<Object>> extractFormData(MultipartExchange exchange) {
+        Map<String, List<Object>> formData = new HashMap<>();
         for (String name : exchange.partNames()) {
-            Part part = exchange.part(name);
-            if(part.isFile()) {
-                Map<String, Object> fileProps= new HashMap<>();
-                fileProps.put("name", part.file().name());
-                fileProps.put("content", readFileContent(part));
-                fileProps.put("type", part.type().toString());
-                formData.put(name, fileProps);
-            } else {
-                formData.put(name, part.value());
+            if (!formData.containsKey(name)) {
+                formData.put(name, new ArrayList<>());
+            }
+
+            for (Part part : exchange.parts(name)) {
+
+                if (part.isFile()) {
+                    Map<String, Object> fileProps = new HashMap<>();
+                    fileProps.put("name", part.file().name());
+                    fileProps.put("content", readFileContent(part));
+                    fileProps.put("type", part.type().toString());
+
+                    formData.get(name).add(fileProps);
+                } else {
+                    formData.get(name).add(part.value());
+                }
+
             }
         }
         return formData;
