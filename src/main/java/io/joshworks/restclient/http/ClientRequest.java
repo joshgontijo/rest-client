@@ -7,6 +7,7 @@ import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.HttpRequest;
 import net.jodah.failsafe.SyncFailsafe;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
@@ -55,10 +56,7 @@ public class ClientRequest {
         this.failsafe = failsafe;
     }
 
-    private static final String CONTENT_TYPE = "content-type";
-    private static final String ACCEPT_ENCODING_HEADER = "accept-encoding";
-    private static final String USER_AGENT_HEADER = "user-agent";
-    private static final String USER_AGENT = "restclient-java/0.2.2";
+    private static final String USER_AGENT = "rest-client/0.2.2";
 
     private static <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(
             final Class<T> responseClass,
@@ -170,11 +168,11 @@ public class ClientRequest {
             }
         }
 
-        if (!request.getHeaders().containsKey(USER_AGENT_HEADER)) {
-            request.header(USER_AGENT_HEADER, USER_AGENT);
+        if (!request.getHeaders().containsKey(HttpHeaders.USER_AGENT)) {
+            request.header(HttpHeaders.USER_AGENT, USER_AGENT);
         }
-        if (!request.getHeaders().containsKey(ACCEPT_ENCODING_HEADER)) {
-            request.header(ACCEPT_ENCODING_HEADER, Constants.GZIP);
+        if (!request.getHeaders().containsKey(HttpHeaders.ACCEPT_ENCODING)) {
+            request.header(HttpHeaders.ACCEPT_ENCODING, Constants.GZIP);
         }
 
         HttpRequestBase reqObj = null;
@@ -235,7 +233,7 @@ public class ClientRequest {
             if (request.getBody() != null) {
                 HttpEntity entity = request.getBody().getEntity();
                 if (async) {
-                    if (reqObj.getHeaders(CONTENT_TYPE) == null || reqObj.getHeaders(CONTENT_TYPE).length == 0) {
+                    if (reqObj.getHeaders(HttpHeaders.CONTENT_TYPE) == null || reqObj.getHeaders(HttpHeaders.CONTENT_TYPE).length == 0) {
                         reqObj.setHeader(entity.getContentType());
                     }
                     try {

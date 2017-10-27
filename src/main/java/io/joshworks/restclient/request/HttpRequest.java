@@ -30,6 +30,7 @@ import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.HttpMethod;
 import io.joshworks.restclient.http.HttpResponse;
 import io.joshworks.restclient.http.utils.Base64Coder;
+import io.joshworks.restclient.http.utils.MimeMappings;
 import io.joshworks.restclient.http.utils.URLParamEncoder;
 import io.joshworks.restclient.request.body.Body;
 import net.jodah.failsafe.Failsafe;
@@ -49,6 +50,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class HttpRequest extends BaseRequest {
+
+    private static final MimeMappings mappings = MimeMappings.builder().build();
 
     private String url;
     protected Body body;
@@ -88,6 +91,21 @@ public class HttpRequest extends BaseRequest {
         }
         list.add(value);
         this.headers.put(name.trim(), list);
+        return this;
+    }
+
+    public HttpRequest contentType(String contentType) {
+        if(contentType == null || contentType.isEmpty()) {
+            return this;
+        }
+        if(!contentType.contains("/")) {
+            String mimeType = mappings.getMimeType(contentType);
+            if(mimeType != null) {
+                return this.header(HttpHeaders.CONTENT_TYPE, mimeType);
+            }
+        }
+
+        this.header(HttpHeaders.CONTENT_TYPE, contentType);
         return this;
     }
 

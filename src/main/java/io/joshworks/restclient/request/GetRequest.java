@@ -27,6 +27,7 @@ package io.joshworks.restclient.request;
 
 import io.joshworks.restclient.http.ClientRequest;
 
+import java.util.Collection;
 import java.util.Map;
 
 public class GetRequest extends HttpRequest {
@@ -46,8 +47,33 @@ public class GetRequest extends HttpRequest {
     }
 
     @Override
+    public GetRequest contentType(String contentType) {
+        return (GetRequest) super.contentType(contentType);
+    }
+
+    @Override
     public GetRequest headers(Map<String, String> headers) {
         return (GetRequest) super.headers(headers);
+    }
+
+    @Override
+    public GetRequest queryString(String name, Collection<?> value) {
+        return (GetRequest) super.queryString(name, value);
+    }
+
+    @Override
+    public GetRequest queryString(String name, Object value) {
+        return (GetRequest) super.queryString(name, value);
+    }
+
+    @Override
+    public GetRequest queryString(Map<String, Object> parameters) {
+        return (GetRequest) super.queryString(parameters);
+    }
+
+    @Override
+    public GetRequest withFallback(Object fallback) {
+        return (GetRequest) super.withFallback(fallback);
     }
 
     @Override

@@ -43,7 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public class RestClient implements Closeable{
+public class RestClient implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
 

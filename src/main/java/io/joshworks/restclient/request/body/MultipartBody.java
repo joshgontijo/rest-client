@@ -25,156 +25,147 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request.body;
 
-import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.ClientRequest;
-import io.joshworks.restclient.http.utils.MapUtil;
+import io.joshworks.restclient.http.utils.MimeMappings;
 import io.joshworks.restclient.request.BaseRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.AbstractContentBody;
 import org.apache.http.entity.mime.content.ByteArrayBody;
-import org.apache.http.entity.mime.content.ContentBody;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.entity.mime.content.StringBody;
 
 import java.io.File;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.Collection;
-import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 public class MultipartBody extends BaseRequest implements Body {
-    private Map<String, List<Object>> parameters = new LinkedHashMap<String, List<Object>>();
-    private Map<String, ContentType> contentTypes = new HashMap<String, ContentType>();
 
-    private boolean hasFile;
-    private HttpMultipartMode mode;
+    private static final MimeMappings mimeMappings = MimeMappings.builder().build();
+
+    private Map<String, List<AbstractContentBody>> parameters = new LinkedHashMap<String, List<AbstractContentBody>>();
+
+    private HttpMultipartMode mode = HttpMultipartMode.STRICT;
 
     public MultipartBody(HttpRequest httpRequest, ClientRequest config) {
         super(config);
         super.httpRequest = httpRequest;
     }
 
-    public MultipartBody field(String name, String value) {
-        return field(name, value, false, null);
+    public MultipartBody part(String name, String value) {
+        return part(name, value, ContentType.TEXT_PLAIN.getMimeType());
     }
 
-    public MultipartBody field(String name, String value, String contentType) {
-        return field(name, value, false, contentType);
+    public MultipartBody part(String name, Integer value) {
+        return part(name, value, ContentType.TEXT_PLAIN.getMimeType());
     }
 
-    public MultipartBody field(String name, Collection<?> collection) {
-        for (Object current : collection) {
-            boolean isFile = current instanceof File;
-            field(name, current, isFile, null);
-        }
-        return this;
+    public MultipartBody part(String name, Long value) {
+        return part(name, value, ContentType.TEXT_PLAIN.getMimeType());
     }
 
-    public MultipartBody field(String name, Object value) {
-        return field(name, value, false, null);
+    public MultipartBody part(String name, Boolean value) {
+        return part(name, value, ContentType.TEXT_PLAIN.getMimeType());
     }
 
-    public MultipartBody field(String name, Object value, boolean file) {
-        return field(name, value, file, null);
+    public MultipartBody part(String name, Double value) {
+        return part(name, value, ContentType.TEXT_PLAIN.getMimeType());
     }
 
-    public MultipartBody field(String name, Object value, boolean file, String contentType) {
-        List<Object> list = parameters.get(name);
+    public MultipartBody part(String name, String value, String contentType) {
+        return addPart(name, new StringBody(value, ContentType.parse(contentType).withCharset(StandardCharsets.UTF_8)));
+    }
+
+    public MultipartBody part(String name, Integer value, String contentType) {
+        return addPart(name, new StringBody(String.valueOf(value), ContentType.parse(contentType).withCharset(StandardCharsets.UTF_8)));
+    }
+
+    public MultipartBody part(String name, Long value, String contentType) {
+        return addPart(name, new StringBody(String.valueOf(value), ContentType.parse(contentType).withCharset(StandardCharsets.UTF_8)));
+    }
+
+    public MultipartBody part(String name, Boolean value, String contentType) {
+        return addPart(name, new StringBody(String.valueOf(value), ContentType.parse(contentType).withCharset(StandardCharsets.UTF_8)));
+    }
+
+    public MultipartBody part(String name, Double value, String contentType) {
+        return addPart(name, new StringBody(String.valueOf(value), ContentType.parse(contentType).withCharset(StandardCharsets.UTF_8)));
+    }
+
+    public MultipartBody part(String name, File file) {
+        String fileMime = getMimeForFile(file);
+        return addPart(name, new FileBody(file, ContentType.parse(fileMime), file.getName()));
+    }
+
+    public MultipartBody part(String name, File file, String contentType) {
+        return addPart(name, new FileBody(file, ContentType.parse(contentType), file.getName()));
+    }
+
+    public MultipartBody part(String name, InputStream stream, String fileName) {
+        ContentType contentType = ContentType.APPLICATION_OCTET_STREAM;
+        return addPart(name, new InputStreamBody(stream, contentType, fileName));
+    }
+
+    public MultipartBody part(String name, InputStream stream, String contentType, String fileName) {
+        return addPart(name, new InputStreamBody(stream, ContentType.parse(contentType), fileName));
+    }
+
+    public MultipartBody part(String name, byte[] bytes, String fileName) {
+        ContentType contentType = ContentType.APPLICATION_OCTET_STREAM;
+        return addPart(name, new ByteArrayBody(bytes, contentType, fileName));
+    }
+
+    public MultipartBody part(String name, byte[] bytes, String contentType, String fileName) {
+        return addPart(name, new ByteArrayBody(bytes, ContentType.parse(contentType), fileName));
+    }
+
+    private MultipartBody addPart(String name, AbstractContentBody value) {
+        List<AbstractContentBody> list = parameters.get(name);
         if (list == null)
             list = new LinkedList<>();
         list.add(value);
         parameters.put(name, list);
 
-        ContentType type;
-        if (contentType != null && contentType.length() > 0) {
-            type = ContentType.parse(contentType);
-        } else if (file) {
-            type = ContentType.APPLICATION_OCTET_STREAM;
-        } else {
-            type = ContentType.APPLICATION_FORM_URLENCODED.withCharset(Constants.UTF_8);
-        }
-        contentTypes.put(name, type);
-
-        if (!hasFile && file) {
-            hasFile = true;
-        }
-
         return this;
     }
 
-    public MultipartBody field(String name, File file) {
-        return field(name, file, true, null);
-    }
-
-    public MultipartBody field(String name, File file, String contentType) {
-        return field(name, file, true, contentType);
-    }
-
-    public MultipartBody field(String name, InputStream stream, ContentType contentType, String fileName) {
-        return field(name, new InputStreamBody(stream, contentType, fileName), true, contentType.getMimeType());
-    }
-
-    public MultipartBody field(String name, InputStream stream, String fileName) {
-        return field(name, new InputStreamBody(stream, ContentType.APPLICATION_OCTET_STREAM, fileName), true, ContentType.APPLICATION_OCTET_STREAM.getMimeType());
-    }
-
-    public MultipartBody field(String name, byte[] bytes, ContentType contentType, String fileName) {
-        return field(name, new ByteArrayBody(bytes, contentType, fileName), true, contentType.getMimeType());
-    }
-
-    public MultipartBody field(String name, byte[] bytes, String fileName) {
-        return field(name, new ByteArrayBody(bytes, ContentType.APPLICATION_OCTET_STREAM, fileName), true, ContentType.APPLICATION_OCTET_STREAM.getMimeType());
-    }
-
-    public MultipartBody basicAuth(String username, String password) {
-        httpRequest.basicAuth(username, password);
-        return this;
-    }
-
-    public MultipartBody mode(String mode) {
-        this.mode = HttpMultipartMode.valueOf(mode);
+    public MultipartBody mode(HttpMultipartMode mode) {
+        this.mode = mode;
         return this;
     }
 
     public HttpEntity getEntity() {
-        if (hasFile) {
-            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-            if (mode != null) {
-                builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-            }
-            for (String key : parameters.keySet()) {
-                List<Object> value = parameters.get(key);
-                ContentType contentType = contentTypes.get(key);
-                for (Object cur : value) {
-                    if (cur instanceof File) {
-                        File file = (File) cur;
-                        builder.addPart(key, new FileBody(file, contentType, file.getName()));
-                    } else if (cur instanceof InputStreamBody) {
-                        builder.addPart(key, (ContentBody) cur);
-                    } else if (cur instanceof ByteArrayBody) {
-                        builder.addPart(key, (ContentBody) cur);
-                    } else {
-                        builder.addPart(key, new StringBody(cur.toString(), contentType));
-                    }
-                }
-            }
-            return builder.build();
-        } else {
-            try {
-                return new UrlEncodedFormEntity(MapUtil.getList(parameters), Constants.UTF_8);
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException(e);
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+        builder.setMode(mode);
+
+        for (String key : parameters.keySet()) {
+            List<AbstractContentBody> value = parameters.get(key);
+            for (AbstractContentBody cur : value) {
+                builder.addPart(key, cur);
             }
         }
+        return builder.build();
+    }
+
+    private String getMimeForFile(File file) {
+        if (file == null) {
+            return null;
+        }
+        String[] split = file.getName().split(".");
+        if(split.length == 0) {
+            return ContentType.APPLICATION_OCTET_STREAM.getMimeType();
+        }
+        String ext = split[split.length - 1];
+
+        return mimeMappings.getMimeType(ext);
     }
 
 }
