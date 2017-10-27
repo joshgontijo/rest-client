@@ -175,7 +175,6 @@ public class ClientRequest {
             request.header(HttpHeaders.ACCEPT_ENCODING, Constants.GZIP);
         }
 
-        HttpRequestBase reqObj = null;
 
         String urlToRequest;
         try {
@@ -194,6 +193,7 @@ public class ClientRequest {
             throw new RuntimeException(e);
         }
 
+        HttpRequestBase reqObj = null;
         switch (request.getHttpMethod()) {
             case GET:
                 reqObj = new HttpGet(urlToRequest);

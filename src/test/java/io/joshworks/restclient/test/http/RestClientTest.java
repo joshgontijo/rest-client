@@ -328,6 +328,7 @@ public class RestClientTest {
 
                     @Override
                     public void failed(RestClientException e) {
+                        e.printStackTrace();
                         fail();
                     }
 
@@ -465,6 +466,7 @@ public class RestClientTest {
                 .asJsonAsync(new Callback<JsonNode>() {
 
                     public void failed(RestClientException e) {
+                        e.printStackTrace();
                         fail();
                     }
 
@@ -519,6 +521,7 @@ public class RestClientTest {
                 .asJsonAsync(new Callback<JsonNode>() {
 
                     public void failed(RestClientException e) {
+                        e.printStackTrace();
                         fail();
                     }
 
@@ -569,6 +572,7 @@ public class RestClientTest {
                 .asJsonAsync(new Callback<JsonNode>() {
 
                     public void failed(RestClientException e) {
+                        e.printStackTrace();
                         fail();
                     }
 

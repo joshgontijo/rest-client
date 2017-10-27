@@ -26,34 +26,20 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.joshworks.restclient.request.body;
 
 import io.joshworks.restclient.http.ClientRequest;
-import io.joshworks.restclient.http.utils.MimeMappings;
 import io.joshworks.restclient.request.BaseRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.AbstractContentBody;
-import org.apache.http.entity.mime.content.ByteArrayBody;
-import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.entity.mime.content.InputStreamBody;
-import org.apache.http.entity.mime.content.StringBody;
 
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 public class MultipartBody extends BaseRequest implements Body {
 
-    private static final MimeMappings mimeMappings = MimeMappings.builder().build();
-
-    private Map<String, List<AbstractContentBody>> parameters = new LinkedHashMap<String, List<AbstractContentBody>>();
-
-    private HttpMultipartMode mode = HttpMultipartMode.STRICT;
+    private final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 
     public MultipartBody(HttpRequest httpRequest, ClientRequest config) {
         super(config);
@@ -81,91 +67,67 @@ public class MultipartBody extends BaseRequest implements Body {
     }
 
     public MultipartBody part(String name, String value, String contentType) {
-        return addPart(name, new StringBody(value, ContentType.parse(contentType).withCharset(StandardCharsets.UTF_8)));
+        builder.addTextBody(name, value, ContentType.create(contentType).withCharset(StandardCharsets.UTF_8));
+        return this;
     }
 
     public MultipartBody part(String name, Integer value, String contentType) {
-        return addPart(name, new StringBody(String.valueOf(value), ContentType.parse(contentType).withCharset(StandardCharsets.UTF_8)));
+        builder.addTextBody(name, String.valueOf(value), ContentType.create(contentType).withCharset(StandardCharsets.UTF_8));
+        return this;
     }
 
     public MultipartBody part(String name, Long value, String contentType) {
-        return addPart(name, new StringBody(String.valueOf(value), ContentType.parse(contentType).withCharset(StandardCharsets.UTF_8)));
+        builder.addTextBody(name, String.valueOf(value), ContentType.create(contentType).withCharset(StandardCharsets.UTF_8));
+        return this;
     }
 
     public MultipartBody part(String name, Boolean value, String contentType) {
-        return addPart(name, new StringBody(String.valueOf(value), ContentType.parse(contentType).withCharset(StandardCharsets.UTF_8)));
+        builder.addTextBody(name, String.valueOf(value), ContentType.create(contentType).withCharset(StandardCharsets.UTF_8));
+        return this;
     }
 
     public MultipartBody part(String name, Double value, String contentType) {
-        return addPart(name, new StringBody(String.valueOf(value), ContentType.parse(contentType).withCharset(StandardCharsets.UTF_8)));
+        builder.addTextBody(name, String.valueOf(value), ContentType.create(contentType).withCharset(StandardCharsets.UTF_8));
+        return this;
     }
 
     public MultipartBody part(String name, File file) {
-        String fileMime = getMimeForFile(file);
-        return addPart(name, new FileBody(file, ContentType.parse(fileMime), file.getName()));
+        builder.addBinaryBody(name, file);
+        return this;
     }
 
     public MultipartBody part(String name, File file, String contentType) {
-        return addPart(name, new FileBody(file, ContentType.parse(contentType), file.getName()));
+        builder.addBinaryBody(name, file, ContentType.create(contentType), file.getName());
+        return this;
     }
 
-    public MultipartBody part(String name, InputStream stream, String fileName) {
-        ContentType contentType = ContentType.APPLICATION_OCTET_STREAM;
-        return addPart(name, new InputStreamBody(stream, contentType, fileName));
+    public MultipartBody part(String name, InputStream inputStream, String fileName) {
+        builder.addBinaryBody(name, inputStream, ContentType.APPLICATION_OCTET_STREAM, fileName);
+        return this;
     }
 
-    public MultipartBody part(String name, InputStream stream, String contentType, String fileName) {
-        return addPart(name, new InputStreamBody(stream, ContentType.parse(contentType), fileName));
+    public MultipartBody part(String name, InputStream inputStream, String contentType, String fileName) {
+        builder.addBinaryBody(name, inputStream, ContentType.create(contentType), fileName);
+        return this;
     }
 
     public MultipartBody part(String name, byte[] bytes, String fileName) {
-        ContentType contentType = ContentType.APPLICATION_OCTET_STREAM;
-        return addPart(name, new ByteArrayBody(bytes, contentType, fileName));
+        builder.addBinaryBody(name, bytes, ContentType.APPLICATION_OCTET_STREAM, fileName);
+        return this;
     }
 
     public MultipartBody part(String name, byte[] bytes, String contentType, String fileName) {
-        return addPart(name, new ByteArrayBody(bytes, ContentType.parse(contentType), fileName));
-    }
-
-    private MultipartBody addPart(String name, AbstractContentBody value) {
-        List<AbstractContentBody> list = parameters.get(name);
-        if (list == null)
-            list = new LinkedList<>();
-        list.add(value);
-        parameters.put(name, list);
-
+        builder.addBinaryBody(name, bytes, ContentType.create(contentType), fileName);
         return this;
     }
 
     public MultipartBody mode(HttpMultipartMode mode) {
-        this.mode = mode;
+        builder.setMode(mode);
         return this;
     }
 
     public HttpEntity getEntity() {
-        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-        builder.setMode(mode);
-
-        for (String key : parameters.keySet()) {
-            List<AbstractContentBody> value = parameters.get(key);
-            for (AbstractContentBody cur : value) {
-                builder.addPart(key, cur);
-            }
-        }
         return builder.build();
-    }
-
-    private String getMimeForFile(File file) {
-        if (file == null) {
-            return null;
-        }
-        String[] split = file.getName().split(".");
-        if (split.length == 0) {
-            return ContentType.APPLICATION_OCTET_STREAM.getMimeType();
-        }
-        String ext = split[split.length - 1];
-
-        return mimeMappings.getMimeType(ext);
     }
 
 }
