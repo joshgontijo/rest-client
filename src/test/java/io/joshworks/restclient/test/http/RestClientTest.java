@@ -40,6 +40,7 @@ import io.joshworks.restclient.test.helper.TestServer;
 import io.joshworks.restclient.test.helper.TestUtils;
 import net.jodah.failsafe.CircuitBreaker;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -55,6 +56,9 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -372,6 +376,48 @@ public class RestClientTest {
         JsonNode json = response.getBody();
         assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
+    }
+
+    @Test
+    public void multipart_contentType() throws Exception {
+        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+                .part("name", "Mark")
+                .part("file", new File(getClass().getResource("/test").toURI()))
+                .asJson();
+
+        JSONArray contentTypeValues = response.getBody().getObject().getJSONObject("headers").getJSONArray(HttpHeaders.CONTENT_TYPE);
+        assertEquals(1, contentTypeValues.length());
+        assertEquals(ContentType.MULTIPART_FORM_DATA.getMimeType(), contentTypeValues.getString(0));
+    }
+
+    @Test
+    public void multipart_contentType_withPreviousValue() throws Exception {
+        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+                .header(HttpHeaders.CONTENT_TYPE, "text/plain")
+                .part("name", "Mark")
+                .part("file", new File(getClass().getResource("/test").toURI()))
+                .asJson();
+
+        JSONArray contentTypeValues = response.getBody().getObject().getJSONObject("headers").getJSONArray(HttpHeaders.CONTENT_TYPE);
+        assertEquals(2, contentTypeValues.length());
+
+        Set<String> values = new HashSet<>();
+        Iterator<Object> iterator = contentTypeValues.iterator();
+        while(iterator.hasNext()) {
+            values.add(String.valueOf(iterator.next()));
+        }
+        assertTrue(values.contains(ContentType.MULTIPART_FORM_DATA.getMimeType()));
+    }
+
+    @Test
+    public void formData_contentType() throws Exception {
+        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+                .field("name", "Mark")
+                .asJson();
+
+        JSONArray contentTypeValues = response.getBody().getObject().getJSONObject("headers").getJSONArray(HttpHeaders.CONTENT_TYPE);
+        assertEquals(1, contentTypeValues.length());
+        assertEquals(ContentType.APPLICATION_FORM_URLENCODED.getMimeType(), contentTypeValues.getString(0));
     }
 
     @Test

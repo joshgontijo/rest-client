@@ -30,6 +30,7 @@ import io.joshworks.restclient.http.utils.MimeMappings;
 import io.joshworks.restclient.request.BaseRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -58,6 +59,7 @@ public class MultipartBody extends BaseRequest implements Body {
     public MultipartBody(HttpRequest httpRequest, ClientRequest config) {
         super(config);
         super.httpRequest = httpRequest;
+        httpRequest.header(HttpHeaders.CONTENT_TYPE, ContentType.MULTIPART_FORM_DATA.getMimeType());
     }
 
     public MultipartBody part(String name, String value) {
@@ -160,7 +162,7 @@ public class MultipartBody extends BaseRequest implements Body {
             return null;
         }
         String[] split = file.getName().split(".");
-        if(split.length == 0) {
+        if (split.length == 0) {
             return ContentType.APPLICATION_OCTET_STREAM.getMimeType();
         }
         String ext = split[split.length - 1];
