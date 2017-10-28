@@ -56,12 +56,15 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -956,20 +959,28 @@ public class RestClientTest {
 
     }
 
-//    @Test
-//    public void multipleHeaders() {
-//        GetRequest request = client.get("http://localhost:9000").header("Name", "Marco").header("Name", "John");
-//        assertEquals(1, request.getHeaders().size());
-//        assertEquals("Marco", request.getHeaders().get("name").get(0));
-//        assertEquals("John", request.getHeaders().get("name").get(1));
-//        assertEquals("Marco", request.getHeaders().get("NAme").get(0));
-//        assertEquals("John", request.getHeaders().get("NAme").get(1));
-//        assertEquals("Marco", request.getHeaders().get("Name").get(0));
-//        assertEquals("John", request.getHeaders().get("Name").get(1));
-//
-//        JSONObject headers = request.asJson().getBody().getObject().getJSONObject("headers");
-//        assertEquals("Marco,John", headers.get("Name"));
-//    }
+    @Test
+    public void multipleHeaders() {
+        GetRequest request = client.get("http://localhost:9000/echoHeaders")
+                .header("Name", "Marco")
+                .header("Name", "John");
+
+        assertEquals(1, request.getHeaders().size());
+        assertEquals("Marco", request.getHeaders().get("name").get(0));
+        assertEquals("John", request.getHeaders().get("name").get(1));
+        assertEquals("Marco", request.getHeaders().get("NAme").get(0));
+        assertEquals("John", request.getHeaders().get("NAme").get(1));
+        assertEquals("Marco", request.getHeaders().get("Name").get(0));
+        assertEquals("John", request.getHeaders().get("Name").get(1));
+
+        JSONArray headers = request.asJson().getBody().getObject().getJSONArray("Name");
+
+        Set<String> headerValues = StreamSupport.stream(headers.spliterator(), false)
+                .map(String::valueOf).collect(Collectors.toSet());
+
+        assertTrue(headerValues.contains("Marco"));
+        assertTrue(headerValues.contains("John"));
+    }
 
 
     @Test
