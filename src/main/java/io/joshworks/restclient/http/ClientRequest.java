@@ -5,7 +5,6 @@ import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.HttpRequest;
-import net.jodah.failsafe.SyncFailsafe;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
@@ -44,16 +43,14 @@ public class ClientRequest {
     public final ObjectMapper objectMapper;
     public final String url;
     public final HttpMethod httpMethod;
-    public SyncFailsafe<Object> failsafe;
 
-    ClientRequest(HttpMethod httpMethod, String url, CloseableHttpClient syncClient, CloseableHttpAsyncClient asyncClient, Map<String, Object> defaultHeaders, ObjectMapper objectMapper, SyncFailsafe<Object> failsafe) {
+    ClientRequest(HttpMethod httpMethod, String url, CloseableHttpClient syncClient, CloseableHttpAsyncClient asyncClient, Map<String, Object> defaultHeaders, ObjectMapper objectMapper) {
         this.url = url;
         this.httpMethod = httpMethod;
         this.syncClient = syncClient;
         this.asyncClient = asyncClient;
         this.defaultHeaders = defaultHeaders;
         this.objectMapper = objectMapper;
-        this.failsafe = failsafe;
     }
 
     private static final String USER_AGENT = "rest-client/0.2.2";
@@ -110,16 +107,10 @@ public class ClientRequest {
             }
 
             public HttpResponse<T> get() throws InterruptedException, ExecutionException {
-                if (failsafe != null) {
-                    return failsafe.get(this::getResponse);
-                }
                 return this.getResponse();
             }
 
             public HttpResponse<T> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                if (failsafe != null) {
-                    return failsafe.get(() -> this.getResponse(timeout, unit));
-                }
                 return this.getResponse(timeout, unit);
             }
 
@@ -136,9 +127,6 @@ public class ClientRequest {
     }
 
     public <T> HttpResponse<T> request(final HttpRequest request, final Class<T> responseClass) {
-        if (failsafe != null) {
-            return failsafe.get(() -> this.doRequest(request, responseClass));
-        }
         return this.doRequest(request, responseClass);
     }
 

@@ -38,7 +38,6 @@ import io.joshworks.restclient.request.HttpRequest;
 import io.joshworks.restclient.test.helper.TestData;
 import io.joshworks.restclient.test.helper.TestServer;
 import io.joshworks.restclient.test.helper.TestUtils;
-import net.jodah.failsafe.CircuitBreaker;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHeaders;
@@ -670,7 +669,7 @@ public class RestClientTest {
         RestClient customClient = null;
         try {
             int timeout = 3000;
-            customClient = RestClient.builder().timeouts(timeout, 10000).build();
+            customClient = RestClient.builder().timeout(timeout, 10000).build();
             String address = "http://" + findAvailableIpAddress() + "/";
             long start = System.currentTimeMillis();
             try {
@@ -1011,27 +1010,6 @@ public class RestClientTest {
         client3.close();
     }
 
-    //FIXME
-//    @Test
-//    public void retry()  , IOException {
-//        RestClient retryClient = RestClient.builder()
-//                .retryPolicy(new RetryPolicy().withMaxRetries(2))
-//                .build();
-//        int status = retryClient.get("http://dummy-url.abc").asString().getStatus();
-//        assertEquals(200, status);
-//    }
-
-    @Test
-    public void fallbackResponse() throws Exception {
-        String fallback = "FALLBACK-DATA";
-        RestClient retryClient = RestClient.builder().build();
-
-        HttpResponse<String> fallbackResponse = retryClient.get("http://localhost:1234/invalid-endpoint")
-                .withFallback(fallback)
-                .asString();
-
-        assertEquals(fallback, fallbackResponse.getBody());
-    }
 
 //
 //    @Test
@@ -1098,34 +1076,6 @@ public class RestClientTest {
         assertEquals("Only header \"Content-Type\" should exist", null, headers.getFirst("cOnTeNt-TyPe"));
         assertEquals("Only header \"Content-Type\" should exist", null, headers.getFirst("content-type"));
         assertEquals("Only header \"Content-Type\" should exist", "application/json", headers.getFirst("Content-Type"));
-    }
-
-    @Test
-    public void circuitBreaker() {
-        RestClient customClient = null;
-        try {
-            CircuitBreaker circuitBreaker = new CircuitBreaker()
-                    .withFailureThreshold(1);
-
-            customClient = RestClient.builder()
-                    .baseUrl("http://localhost:1234")
-                    .circuitBreaker(circuitBreaker)
-                    .build();
-
-
-            assertTrue(circuitBreaker.isClosed());
-            try {
-                customClient.get("/invalid-endpoint").asJson();
-                customClient.get("/invalid-endpoint").asJson();
-            } catch (Exception ex) {
-                System.err.println(ex.getMessage());
-            }
-            assertTrue(circuitBreaker.isOpen());
-
-
-        } finally {
-            customClient.close();
-        }
     }
 
     @Test

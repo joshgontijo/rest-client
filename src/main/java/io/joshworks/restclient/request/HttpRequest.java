@@ -28,13 +28,10 @@ package io.joshworks.restclient.request;
 import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.HttpMethod;
-import io.joshworks.restclient.http.HttpResponse;
 import io.joshworks.restclient.http.utils.Base64Coder;
 import io.joshworks.restclient.http.utils.MimeMappings;
 import io.joshworks.restclient.http.utils.URLParamEncoder;
 import io.joshworks.restclient.request.body.Body;
-import net.jodah.failsafe.Failsafe;
-import net.jodah.failsafe.RetryPolicy;
 import org.apache.http.HttpHeaders;
 
 import java.io.UnsupportedEncodingException;
@@ -154,14 +151,6 @@ public class HttpRequest extends BaseRequest {
                 }
             }
         }
-        return this;
-    }
-
-    public HttpRequest withFallback(Object fallback) {
-        if (clientRequest.failsafe == null) {
-            clientRequest.failsafe = Failsafe.with(new RetryPolicy().withMaxRetries(0));
-        }
-        clientRequest.failsafe.withFallback(HttpResponse.fallback(fallback));
         return this;
     }
 

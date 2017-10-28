@@ -14,22 +14,21 @@ Apart from the features provided by Unirest Java, this fork also provides:
 
 * Bug fixes
 * Independent client configuration
+* New fluent API for async requests
 * Lazy response body parsing
 * Default JsonMapper using Gson
 * New fluent async API
-* Bulk head, Circuit breaker, fallback response and connection retry using [Failsafe](https://github.com/jhalterman/failsafe)
 * Single idle thread monitor for all clients
 
 
-### With Maven
+### Maven
 
-You can use Maven by including the library:
 
 ```xml
 <dependency>
     <groupId>io.joshworks.unirest</groupId>
     <artifactId>unirest-java</artifactId>
-    <version>0.2.1</version>
+    <version>1.5.0</version>
 </dependency>
 ```
 
@@ -58,12 +57,12 @@ String response = client.get("/some-resource").asString();
 
 ```
 
-### Simple client
-SimpleClient provides static methods for simple usage with default configuration
+### Unirest client
+Unirest provides static methods for simple usage with default configuration.
 
 ```java
 
-String response = SimpleClient.get("http://my-api.com/v1").asString();
+String response = Unirest.get("http://my-api.com/v1").asString();
 
 ```
 
@@ -71,34 +70,11 @@ String response = SimpleClient.get("http://my-api.com/v1").asString();
 ### Async fluent API
 
 ```java
-client.get(BASE_URL + "/hello")
+client.get("http://my-api.com/v1/hello")
         .async(String.class)
         .completed(resp -> System.out.println(resp.getBody()))
         .failed((e) -> e.printStackTrace())
         .request();
-```
-
-
-### Fallback response
-Fallback provides a default response whenever a service fails, when using with circuit breaker and / or RetryPolicy,
-it will return a fallback if the circuit is open and / or after retrying.
-
-```java
-
-String response = client.get("http://www.flaky-service.com")
-                        .withFallback("Yolo")
-                        .asString();
-
-System.out.println(response); //Yolo
-
-```
-
-### Custom Failsafe configuration
-```java
-
-RestClient client = RestClient.newClient().failsafe(Failsafe.with(...)).build()
-
-
 ```
 
 
@@ -109,42 +85,6 @@ This should be done for each client.
 For example, serializing Json from / to Object using the popular Gson takes only few lines of code.
 By default Gson is used, so there's no need to register any other unless you need custom configuration.
 
-```java
- 
-
-ObjectMapper jsonMapper = new ObjectMapper() {
-            private final Gson gson = new Gson();
-
-            public <T> T readValue(String value, Class<T> valueType) {
-                return gson.fromJson(value, valueType);
-            }
-
-            public String writeValue(Object value) {
-                return gson.toJson(value);
-            }
-        };
-
-RestClient client = RestClient.newClient()
-                     .objectMapper(jsonMapper)
-                     .build();
-
-// Response to Object
-HttpResponse<Book> bookResponse = client.get("http://httpbin.org/books/1").asObject(Book.class);
-Book bookObject = bookResponse.getBody();
-
-HttpResponse<Author> authorResponse = client.get("http://httpbin.org/books/{id}/author")
-    .routeParam("id", bookObject.getId())
-    .asObject(Author.class);
-    
-Author authorObject = authorResponse.getBody();
-
-// Object to Json
-HttpResponse<JsonNode> postResponse = client.post("http://httpbin.org/authors/post")
-        .header("accept", "application/json")
-        .header("Content-Type", "application/json")
-        .body(authorObject)
-        .asJson();
-```
 
 # Configuration API
 Use the configuration api to configure a single client instance.
@@ -157,17 +97,13 @@ Use the configuration api to configure a single client instance.
         
             .httpClient(CloseableHttpClient httpClient)
             .asyncHttpClient(CloseableHttpAsyncClient asyncHttpClient)
-
+            .followRedirect(boolean followRedirect)
             .proxy(HttpHost proxy)
 
             .objectMapper(ObjectMapper objectMapper)
       
-            .timeouts(int connectionTimeout, int socketTimeout)
+            .timeout(int connectionTimeout, int socketTimeout)
             .concurrency(int maxTotal)
-
-            //Failsafe
-            .retryPolicy(RetryPolicy retryPolicy)
-            .circuitBeaker(CircuitBreaker breaker)
 ```
 
 # Exiting an application

@@ -92,11 +92,6 @@ public class HttpRequestWithBody extends HttpRequest {
         return (HttpRequestWithBody) super.queryString(name, value);
     }
 
-    @Override
-    public HttpRequestWithBody withFallback(Object fallback) {
-        return (HttpRequestWithBody) super.withFallback(fallback);
-    }
-
     //-------------- form params
     public FormEncodedBody field(String name, String value) {
         FormEncodedBody formBody = new FormEncodedBody(this, config).field(name, value);

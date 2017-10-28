@@ -72,11 +72,6 @@ public class GetRequest extends HttpRequest {
     }
 
     @Override
-    public GetRequest withFallback(Object fallback) {
-        return (GetRequest) super.withFallback(fallback);
-    }
-
-    @Override
     public GetRequest basicAuth(String username, String password) {
         super.basicAuth(username, password);
         return this;
