@@ -27,6 +27,7 @@ import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -82,6 +83,35 @@ public class ClientRequest {
             }
 
         };
+    }
+
+    public <T> CompletableFuture<HttpResponse<T>> requestAsync(HttpRequest request, final Class<T> responseClass) {
+
+        HttpUriRequest requestObj = prepareRequest(request, true);
+
+        if (!asyncClient.isRunning()) {
+            asyncClient.start();
+        }
+
+        CompletableFuture<HttpResponse<T>> completableFuture = new CompletableFuture<>();
+        asyncClient.execute(requestObj, prepareCallback(responseClass, new Callback<T>() {
+            @Override
+            public void completed(HttpResponse<T> response) {
+                completableFuture.complete(response);
+            }
+
+            @Override
+            public void failed(RestClientException e) {
+                completableFuture.completeExceptionally(e);
+            }
+
+            @Override
+            public void cancelled() {
+                //do nothing
+            }
+        }, objectMapper));
+
+        return completableFuture;
     }
 
     public <T> Future<HttpResponse<T>> requestAsync(
