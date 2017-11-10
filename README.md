@@ -14,7 +14,7 @@ Apart from the features provided by Unirest Java, this fork also provides:
 
 * Bug fixes
 * Independent client configuration
-* New fluent API for async requests
+* Updated async requests to use Java 8 CompletableFuture
 * Lazy response body parsing
 * Default JsonMapper using Gson
 * New fluent async API
@@ -66,15 +66,19 @@ String response = Unirest.get("http://my-api.com/v1").asString();
 
 ```
 
-
-### Async fluent API
+### Async requests with CompletableFuture
 
 ```java
 client.get("http://my-api.com/v1/hello")
-        .async(String.class)
-        .completed(resp -> System.out.println(resp.getBody()))
-        .failed((e) -> e.printStackTrace())
-        .request();
+        .asStringAsync()
+        .thenAccept(resp -> {
+            System.out.println(resp.getBody())
+         })
+         .exceptionally(e -> {
+            e.printStackTrace();
+            return null;
+         });
+         
 ```
 
 
@@ -85,26 +89,6 @@ This should be done for each client.
 For example, serializing Json from / to Object using the popular Gson takes only few lines of code.
 By default Gson is used, so there's no need to register any other unless you need custom configuration.
 
-
-# Configuration API
-Use the configuration api to configure a single client instance.
-
-```java
-        
-        RestClient.newClient()
-            .defaultHeader(String key, String value)
-            .defaultHeader(String key, long value)
-        
-            .httpClient(CloseableHttpClient httpClient)
-            .asyncHttpClient(CloseableHttpAsyncClient asyncHttpClient)
-            .followRedirect(boolean followRedirect)
-            .proxy(HttpHost proxy)
-
-            .objectMapper(ObjectMapper objectMapper)
-      
-            .timeout(int connectionTimeout, int socketTimeout)
-            .concurrency(int maxTotal)
-```
 
 # Exiting an application
 
