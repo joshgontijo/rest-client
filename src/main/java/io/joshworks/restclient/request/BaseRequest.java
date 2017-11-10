@@ -30,9 +30,9 @@ import io.joshworks.restclient.http.HttpResponse;
 import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
-import io.joshworks.restclient.request.async.AsyncRequest;
 
 import java.io.InputStream;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 public abstract class BaseRequest {
@@ -52,48 +52,44 @@ public abstract class BaseRequest {
         return clientRequest.request(httpRequest, String.class);
     }
 
-    public Future<HttpResponse<String>> asStringAsync() {
-        return clientRequest.requestAsync(httpRequest, String.class, null);
+    public CompletableFuture<HttpResponse<String>> asStringAsync() {
+        return clientRequest.requestAsync(httpRequest, String.class);
     }
 
-    public Future<HttpResponse<String>> asStringAsync(Callback<String> callback) {
-        return clientRequest.requestAsync(httpRequest, String.class, callback);
+    public void asStringAsync(Callback<String> callback) {
+        clientRequest.requestAsync(httpRequest, String.class, callback);
     }
 
     public HttpResponse<JsonNode> asJson() throws RestClientException {
         return clientRequest.request(httpRequest, JsonNode.class);
     }
 
-    public <T> AsyncRequest<T> async(Class<T> responseType) throws RestClientException {
-        return new AsyncRequest<>(clientRequest, httpRequest, responseType);
-    }
-
-    public Future<HttpResponse<JsonNode>> asJsonAsync() {
-        return clientRequest.requestAsync(httpRequest, JsonNode.class, null);
+    public CompletableFuture<HttpResponse<JsonNode>> asJsonAsync() {
+        return clientRequest.requestAsync(httpRequest, JsonNode.class);
     }
 
     public Future<HttpResponse<JsonNode>> asJsonAsync(Callback<JsonNode> callback) {
         return clientRequest.requestAsync(httpRequest, JsonNode.class, callback);
     }
 
-    public <T> HttpResponse<T> asObject(Class<? extends T> responseClass) throws RestClientException {
-        return clientRequest.request(httpRequest, (Class) responseClass);
+    public <T> HttpResponse<T> asObject(Class<T> responseClass) throws RestClientException {
+        return clientRequest.request(httpRequest, responseClass);
     }
 
-    public <T> Future<HttpResponse<T>> asObjectAsync(Class<? extends T> responseClass) {
-        return clientRequest.requestAsync(httpRequest, (Class) responseClass, null);
+    public <T> CompletableFuture<HttpResponse<T>> asObjectAsync(Class<T> responseClass) {
+        return clientRequest.requestAsync(httpRequest, responseClass);
     }
 
-    public <T> Future<HttpResponse<T>> asObjectAsync(Class<? extends T> responseClass, Callback<T> callback) {
-        return clientRequest.requestAsync(httpRequest, (Class) responseClass, callback);
+    public <T> Future<HttpResponse<T>> asObjectAsync(Class<T> responseClass, Callback<T> callback) {
+        return clientRequest.requestAsync(httpRequest,responseClass, callback);
     }
 
     public HttpResponse<InputStream> asBinary() throws RestClientException {
         return clientRequest.request(httpRequest, InputStream.class);
     }
 
-    public Future<HttpResponse<InputStream>> asBinaryAsync() {
-        return clientRequest.requestAsync(httpRequest, InputStream.class, null);
+    public CompletableFuture<HttpResponse<InputStream>> asBinaryAsync() {
+        return clientRequest.requestAsync(httpRequest, InputStream.class);
     }
 
     public Future<HttpResponse<InputStream>> asBinaryAsync(Callback<InputStream> callback) {
