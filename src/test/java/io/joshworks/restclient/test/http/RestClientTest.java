@@ -547,15 +547,14 @@ public class RestClientTest {
     }
 
     @Test
-    public void asyncComplete() throws Exception {
+    public void asyncCompletableFuture() throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
         client.get(BASE_URL + "/hello")
-                .async(String.class)
-                .completed(resp -> {
+                .asStringAsync()
+                .thenAccept(resp -> {
                     assertEquals("Hello", resp.getBody());
                     latch.countDown();
-                })
-                .request();
+                });
 
         if (!latch.await(5, TimeUnit.SECONDS)) {
             fail();
