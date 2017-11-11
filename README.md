@@ -17,7 +17,6 @@ Apart from the features provided by Unirest Java, this fork also provides:
 * Updated async requests to use Java 8 CompletableFuture
 * Lazy response body parsing
 * Default JsonMapper using Gson
-* New fluent async API
 * Single idle thread monitor for all clients
 
 
