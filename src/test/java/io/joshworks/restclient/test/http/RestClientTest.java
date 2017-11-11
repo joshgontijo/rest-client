@@ -198,10 +198,13 @@ public class RestClientTest {
 
     @Test
     public void postRawBody() {
-        String sourceString = "'\"@こんにちは-test-123-" + Math.random();
+        String sourceString = "'\"@こんにちは-test-123";
         byte[] sentBytes = sourceString.getBytes();
 
-        HttpResponse<String> response = client.post(BASE_URL + "/echoPlain").body(sentBytes).asString();
+        HttpResponse<String> response = client.post(BASE_URL + "/echoBinary")
+                .header("Content-type", "text/plain")
+                .body(sentBytes)
+                .asString();
         assertEquals(sourceString, response.getBody());
     }
 

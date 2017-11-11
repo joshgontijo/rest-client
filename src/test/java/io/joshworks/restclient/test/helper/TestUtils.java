@@ -20,6 +20,10 @@ public class TestUtils {
         }
     }
 
+    public static String toString(InputStream is) {
+        java.util.Scanner s = new java.util.Scanner(is, "UTF-8").useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
+    }
 
 
 }

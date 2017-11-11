@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.joshworks.snappy.SnappyServer.*;
+import static io.joshworks.snappy.parser.MediaTypes.consumes;
 import static io.joshworks.snappy.parser.MediaTypes.produces;
 
 /**
@@ -50,6 +51,7 @@ public class TestServer {
         delete("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));
         options("/echoPlain", exchange ->exchange.send(exchange.body().asString()), produces("txt"));
         head("/echoPlain", exchange -> exchange.status(200), produces("txt"));
+        post("/echoBinary", exchange -> exchange.send(TestUtils.toString(exchange.body().asBinary()), "txt"), consumes("txt"));
 
 
 

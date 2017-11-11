@@ -132,7 +132,6 @@ public class RestClient implements Closeable{
     /**
      * Close the asynchronous client and its event loop. Use this method to close all the threads and allow an application to exit.
      */
-
     @Override
     public void close() {
         try {
