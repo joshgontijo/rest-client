@@ -28,7 +28,6 @@ package io.joshworks.restclient.http;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequestWithBody;
-import net.jodah.failsafe.SyncFailsafe;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
@@ -43,7 +42,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public class RestClient implements Closeable{
+public class RestClient implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
 
@@ -55,7 +54,6 @@ public class RestClient implements Closeable{
     private final ObjectMapper objectMapper;
 
     private final String baseUrl;
-    private final SyncFailsafe<Object> failsafe;
     private final PoolingNHttpClientConnectionManager asyncConnectionManager;
     private final PoolingHttpClientConnectionManager syncConnectionManager;
 
@@ -68,7 +66,6 @@ public class RestClient implements Closeable{
                ObjectMapper objectMapper,
                Map<String, Object> defaultHeaders,
                Function<String, String> urlTransformer,
-               SyncFailsafe<Object> failsafe,
                PoolingNHttpClientConnectionManager asyncConnectionManager,
                PoolingHttpClientConnectionManager syncConnectionManager,
                CloseableHttpAsyncClient asyncClient,
@@ -76,7 +73,6 @@ public class RestClient implements Closeable{
         this.objectMapper = objectMapper;
         this.baseUrl = baseUrl;
         this.urlTransformer = urlTransformer;
-        this.failsafe = failsafe;
         this.asyncConnectionManager = asyncConnectionManager;
         this.syncConnectionManager = syncConnectionManager;
         this.asyncClient = asyncClient;
@@ -90,31 +86,31 @@ public class RestClient implements Closeable{
     }
 
     public GetRequest get(String url) {
-        return new GetRequest(new ClientRequest(HttpMethod.GET, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
+        return new GetRequest(new ClientRequest(HttpMethod.GET, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper));
     }
 
     public GetRequest head(String url) {
-        return new GetRequest(new ClientRequest(HttpMethod.HEAD, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
+        return new GetRequest(new ClientRequest(HttpMethod.HEAD, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper));
     }
 
     public HttpRequestWithBody options(String url) {
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.OPTIONS, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.OPTIONS, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper));
     }
 
     public HttpRequestWithBody post(String url) {
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.POST, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.POST, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper));
     }
 
     public HttpRequestWithBody delete(String url) {
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.DELETE, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.DELETE, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper));
     }
 
     public HttpRequestWithBody patch(String url) {
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PATCH, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PATCH, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper));
     }
 
     public HttpRequestWithBody put(String url) {
-        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PUT, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper, failsafe));
+        return new HttpRequestWithBody(new ClientRequest(HttpMethod.PUT, resolveUrl(url), syncClient, asyncClient, defaultHeaders, objectMapper));
     }
 
     private String resolveUrl(String url) {

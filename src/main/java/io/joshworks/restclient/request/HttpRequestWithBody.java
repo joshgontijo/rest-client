@@ -28,12 +28,10 @@ package io.joshworks.restclient.request;
 import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
-import io.joshworks.restclient.http.utils.MimeMappings;
+import io.joshworks.restclient.request.body.FormEncodedBody;
 import io.joshworks.restclient.request.body.MultipartBody;
 import io.joshworks.restclient.request.body.RawBody;
 import io.joshworks.restclient.request.body.RequestBodyEntity;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.content.InputStreamBody;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -43,8 +41,6 @@ import java.util.Collection;
 import java.util.Map;
 
 public class HttpRequestWithBody extends HttpRequest {
-
-    private static final MimeMappings mappings = MimeMappings.builder().build();
 
     private final ObjectMapper mapper;
     private final ClientRequest config;
@@ -59,6 +55,11 @@ public class HttpRequestWithBody extends HttpRequest {
     public HttpRequestWithBody routeParam(String name, String value) {
         super.routeParam(name, value);
         return this;
+    }
+
+    @Override
+    public HttpRequestWithBody contentType(String contentType) {
+        return (HttpRequestWithBody) super.contentType(contentType);
     }
 
     @Override
@@ -86,58 +87,149 @@ public class HttpRequestWithBody extends HttpRequest {
         return (HttpRequestWithBody) super.queryString(name, value);
     }
 
-    public MultipartBody field(String name, Collection<?> value) {
-        MultipartBody body = new MultipartBody(this, config).field(name, value);
-        this.body = body;
-        return body;
+    @Override
+    public HttpRequestWithBody queryString(String name, Collection<?> value) {
+        return (HttpRequestWithBody) super.queryString(name, value);
     }
 
-    public MultipartBody field(String name, Object value) {
-        return field(name, value, null);
+    //-------------- form params
+    public FormEncodedBody field(String name, String value) {
+        FormEncodedBody formBody = new FormEncodedBody(this, config).field(name, value);
+        this.body = formBody;
+        return formBody;
     }
 
-    public MultipartBody field(String name, File file) {
-        return field(name, file, getFileMime(file));
+    public FormEncodedBody field(String name, Integer value) {
+        FormEncodedBody formBody = new FormEncodedBody(this, config).field(name, value);
+        this.body = formBody;
+        return formBody;
     }
 
-    public MultipartBody field(String name, Object value, String contentType) {
-        MultipartBody body = new MultipartBody(this, config).field(name, (value == null) ? "" : value.toString(), contentType);
-        this.body = body;
-        return body;
+    public FormEncodedBody field(String name, Long value) {
+        FormEncodedBody formBody = new FormEncodedBody(this, config).field(name, value);
+        this.body = formBody;
+        return formBody;
     }
 
-    public MultipartBody field(String name, File file, String contentType) {
-        MultipartBody body = new MultipartBody(this, config).field(name, file, contentType);
-        this.body = body;
-        return body;
+    public FormEncodedBody field(String name, Boolean value) {
+        FormEncodedBody formBody = new FormEncodedBody(this, config).field(name, value);
+        this.body = formBody;
+        return formBody;
     }
 
-    public MultipartBody fields(Map<String, Object> parameters) {
-        MultipartBody body = new MultipartBody(this, config);
-        if (parameters != null) {
-            for (Map.Entry<String, Object> param : parameters.entrySet()) {
-                if (param.getValue() instanceof File) {
-                    body.field(param.getKey(), (File) param.getValue());
-                } else {
-                    body.field(param.getKey(), (param.getValue() == null) ? "" : param.getValue().toString());
-                }
-            }
-        }
-        this.body = body;
-        return body;
+    public FormEncodedBody field(String name, Double value) {
+        FormEncodedBody formBody = new FormEncodedBody(this, config).field(name, value);
+        this.body = formBody;
+        return formBody;
     }
 
-    public MultipartBody field(String name, InputStream stream, ContentType contentType, String fileName) {
-        InputStreamBody inputStreamBody = new InputStreamBody(stream, contentType, fileName);
-        MultipartBody body = new MultipartBody(this, config).field(name, inputStreamBody, true, contentType.toString());
-        this.body = body;
-        return body;
+    public FormEncodedBody fields(Map<String, Object> parameters) {
+        FormEncodedBody formBody = new FormEncodedBody(this, config).fields(parameters);
+        this.body = formBody;
+        return formBody;
     }
 
-    public MultipartBody field(String name, InputStream stream, String fileName) {
-        MultipartBody body = field(name, stream, ContentType.APPLICATION_OCTET_STREAM, fileName);
-        this.body = body;
-        return body;
+    public FormEncodedBody field(String name, Collection<Object> values) {
+        FormEncodedBody formBody = new FormEncodedBody(this, config).field(name, values);
+        this.body = formBody;
+        return formBody;
+    }
+
+    //------------ multipart
+    public MultipartBody part(String name, String value) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, value);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, Integer value) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, value);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, Long value) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, value);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, Boolean value) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, value);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, Double value) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, value);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, String value, String contentType) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, value, contentType);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, Integer value, String contentType) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, value, contentType);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, Long value, String contentType) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, value, contentType);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, Boolean value, String contentType) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, value, contentType);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, Double value, String contentType) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, value, contentType);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, File file) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, file);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, File file, String contentType) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, file, contentType);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, InputStream stream, String fileName) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, stream, fileName);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, InputStream stream, String contentType, String fileName) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, stream, contentType, fileName);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, byte[] bytes, String fileName) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, bytes, fileName);
+        this.body = partBody;
+        return partBody;
+    }
+
+    public MultipartBody part(String name, byte[] bytes, String contentType, String fileName) {
+        MultipartBody partBody = new MultipartBody(this, config).part(name, bytes, contentType, fileName);
+        this.body = partBody;
+        return partBody;
     }
 
     public RequestBodyEntity body(JsonNode body) {
@@ -182,18 +274,6 @@ public class HttpRequestWithBody extends HttpRequest {
      */
     public RequestBodyEntity body(JSONArray body) {
         return body(body.toString());
-    }
-
-
-    private String getFileMime(File file) {
-        String[] split = file.getName().split(".");
-        if(split.length > 1) {
-            String extension = split[split.length - 1];
-            if(extension != null && !extension.isEmpty()) {
-                return mappings.getMimeType(extension);
-            }
-        }
-        return null;
     }
 
 }

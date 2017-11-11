@@ -5,8 +5,8 @@ import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.HttpRequest;
-import net.jodah.failsafe.SyncFailsafe;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
@@ -44,22 +44,17 @@ public class ClientRequest {
     public final ObjectMapper objectMapper;
     public final String url;
     public final HttpMethod httpMethod;
-    public SyncFailsafe<Object> failsafe;
 
-    ClientRequest(HttpMethod httpMethod, String url, CloseableHttpClient syncClient, CloseableHttpAsyncClient asyncClient, Map<String, Object> defaultHeaders, ObjectMapper objectMapper, SyncFailsafe<Object> failsafe) {
+    ClientRequest(HttpMethod httpMethod, String url, CloseableHttpClient syncClient, CloseableHttpAsyncClient asyncClient, Map<String, Object> defaultHeaders, ObjectMapper objectMapper) {
         this.url = url;
         this.httpMethod = httpMethod;
         this.syncClient = syncClient;
         this.asyncClient = asyncClient;
         this.defaultHeaders = defaultHeaders;
         this.objectMapper = objectMapper;
-        this.failsafe = failsafe;
     }
 
-    private static final String CONTENT_TYPE = "content-type";
-    private static final String ACCEPT_ENCODING_HEADER = "accept-encoding";
-    private static final String USER_AGENT_HEADER = "user-agent";
-    private static final String USER_AGENT = "restclient-java/0.2.2";
+    private static final String USER_AGENT = "rest-client/0.2.2";
 
     private static <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(
             final Class<T> responseClass,
@@ -142,16 +137,10 @@ public class ClientRequest {
             }
 
             public HttpResponse<T> get() throws InterruptedException, ExecutionException {
-                if (failsafe != null) {
-                    return failsafe.get(this::getResponse);
-                }
                 return this.getResponse();
             }
 
             public HttpResponse<T> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                if (failsafe != null) {
-                    return failsafe.get(() -> this.getResponse(timeout, unit));
-                }
                 return this.getResponse(timeout, unit);
             }
 
@@ -168,9 +157,6 @@ public class ClientRequest {
     }
 
     public <T> HttpResponse<T> request(final HttpRequest request, final Class<T> responseClass) {
-        if (failsafe != null) {
-            return failsafe.get(() -> this.doRequest(request, responseClass));
-        }
         return this.doRequest(request, responseClass);
     }
 
@@ -200,14 +186,13 @@ public class ClientRequest {
             }
         }
 
-        if (!request.getHeaders().containsKey(USER_AGENT_HEADER)) {
-            request.header(USER_AGENT_HEADER, USER_AGENT);
+        if (!request.getHeaders().containsKey(HttpHeaders.USER_AGENT)) {
+            request.header(HttpHeaders.USER_AGENT, USER_AGENT);
         }
-        if (!request.getHeaders().containsKey(ACCEPT_ENCODING_HEADER)) {
-            request.header(ACCEPT_ENCODING_HEADER, Constants.GZIP);
+        if (!request.getHeaders().containsKey(HttpHeaders.ACCEPT_ENCODING)) {
+            request.header(HttpHeaders.ACCEPT_ENCODING, Constants.GZIP);
         }
 
-        HttpRequestBase reqObj = null;
 
         String urlToRequest;
         try {
@@ -226,6 +211,7 @@ public class ClientRequest {
             throw new RuntimeException(e);
         }
 
+        HttpRequestBase reqObj = null;
         switch (request.getHttpMethod()) {
             case GET:
                 reqObj = new HttpGet(urlToRequest);
@@ -265,7 +251,7 @@ public class ClientRequest {
             if (request.getBody() != null) {
                 HttpEntity entity = request.getBody().getEntity();
                 if (async) {
-                    if (reqObj.getHeaders(CONTENT_TYPE) == null || reqObj.getHeaders(CONTENT_TYPE).length == 0) {
+                    if (reqObj.getHeaders(HttpHeaders.CONTENT_TYPE) == null || reqObj.getHeaders(HttpHeaders.CONTENT_TYPE).length == 0) {
                         reqObj.setHeader(entity.getContentType());
                     }
                     try {
