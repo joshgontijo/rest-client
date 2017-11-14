@@ -1,7 +1,6 @@
-package io.joshworks.restclient.http;
+package io.joshworks.restclient.http.mapper;
 
 import com.google.gson.Gson;
-import io.joshworks.restclient.http.mapper.ObjectMapper;
 
 /**
  * Created by Josh Gontijo on 5/5/17.

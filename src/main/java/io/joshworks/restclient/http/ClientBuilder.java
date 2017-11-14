@@ -1,5 +1,6 @@
 package io.joshworks.restclient.http;
 
+import io.joshworks.restclient.http.mapper.JsonMapper;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.CookieSpecs;
