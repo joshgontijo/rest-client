@@ -54,7 +54,7 @@ public class ClientRequest {
         this.objectMapper = objectMapper;
     }
 
-    private static final String USER_AGENT = "rest-client/0.2.2";
+    private static final String USER_AGENT = "rest-client/1.5.1";
 
     private static <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(
             final Class<T> responseClass,
@@ -193,7 +193,6 @@ public class ClientRequest {
             request.header(HttpHeaders.ACCEPT_ENCODING, Constants.GZIP);
         }
 
-
         String urlToRequest;
         try {
             URL url = new URL(request.getUrl());
@@ -211,30 +210,7 @@ public class ClientRequest {
             throw new RuntimeException(e);
         }
 
-        HttpRequestBase reqObj = null;
-        switch (request.getHttpMethod()) {
-            case GET:
-                reqObj = new HttpGet(urlToRequest);
-                break;
-            case POST:
-                reqObj = new HttpPost(urlToRequest);
-                break;
-            case PUT:
-                reqObj = new HttpPut(urlToRequest);
-                break;
-            case DELETE:
-                reqObj = new HttpDeleteWithBody(urlToRequest);
-                break;
-            case PATCH:
-                reqObj = new HttpPatchWithBody(urlToRequest);
-                break;
-            case OPTIONS:
-                reqObj = new HttpOptionsWithBody(urlToRequest);
-                break;
-            case HEAD:
-                reqObj = new HttpHead(urlToRequest);
-                break;
-        }
+        final HttpRequestBase reqObj = newRequestObject(request, urlToRequest, async);
 
         Set<Map.Entry<String, List<String>>> entrySet = request.getHeaders().entrySet();
         for (Map.Entry<String, List<String>> entry : entrySet) {
@@ -246,28 +222,50 @@ public class ClientRequest {
             }
         }
 
+        return reqObj;
+    }
+
+    private HttpRequestBase newRequestObject(HttpRequest request, String urlToRequest, boolean async) {
+        switch (request.getHttpMethod()) {
+            case GET:
+                return new HttpGet(urlToRequest);
+            case HEAD:
+                return new HttpHead(urlToRequest);
+            case POST:
+                return withBody(new HttpPost(urlToRequest), request, async);
+            case PUT:
+                return withBody(new HttpPut(urlToRequest), request, async);
+            case DELETE:
+                return withBody(new HttpDeleteWithBody(urlToRequest), request, async);
+            case PATCH:
+                return withBody(new HttpPatchWithBody(urlToRequest), request, async);
+            case OPTIONS:
+                return withBody(new HttpOptionsWithBody(urlToRequest), request, async);
+            default:
+                throw new IllegalArgumentException("Unknown request method: " + request.getHttpMethod());
+        }
+    }
+
+    private HttpRequestBase withBody(HttpEntityEnclosingRequestBase request, HttpRequest original, boolean async) {
         // Set body
-        if (request.getHttpMethod() != HttpMethod.GET && request.getHttpMethod() != HttpMethod.HEAD) {
-            if (request.getBody() != null) {
-                HttpEntity entity = request.getBody().getEntity();
-                if (async) {
-                    if (reqObj.getHeaders(HttpHeaders.CONTENT_TYPE) == null || reqObj.getHeaders(HttpHeaders.CONTENT_TYPE).length == 0) {
-                        reqObj.setHeader(entity.getContentType());
-                    }
-                    try {
-                        ByteArrayOutputStream output = new ByteArrayOutputStream();
-                        entity.writeTo(output);
-                        NByteArrayEntity en = new NByteArrayEntity(output.toByteArray());
-                        ((HttpEntityEnclosingRequestBase) reqObj).setEntity(en);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                } else {
-                    ((HttpEntityEnclosingRequestBase) reqObj).setEntity(entity);
+        if (original.getBody() != null) {
+            HttpEntity entity = original.getBody().getEntity();
+            if (async) {
+                if (request.getHeaders(HttpHeaders.CONTENT_TYPE) == null || request.getHeaders(HttpHeaders.CONTENT_TYPE).length == 0) {
+                    request.setHeader(entity.getContentType());
                 }
+                try {
+                    ByteArrayOutputStream output = new ByteArrayOutputStream();
+                    entity.writeTo(output);
+                    NByteArrayEntity en = new NByteArrayEntity(output.toByteArray());
+                    request.setEntity(en);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                request.setEntity(entity);
             }
         }
-
-        return reqObj;
+        return request;
     }
 }
