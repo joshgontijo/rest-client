@@ -27,9 +27,11 @@ package io.joshworks.restclient.http;
 
 import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
+import io.joshworks.restclient.http.mapper.ObjectMappers;
 import io.joshworks.restclient.http.utils.ResponseUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
 import org.apache.http.StatusLine;
 import org.apache.http.util.EntityUtils;
 
@@ -50,8 +52,6 @@ public class HttpResponse<T> {
     private InputStream rawBody;
     private T body;
     private Class<T> responseClass;
-    private ObjectMapper objectMapper;
-
 
     public static <T> HttpResponse<T> fallback(T body) {
         return new HttpResponse<>(body);
@@ -61,9 +61,8 @@ public class HttpResponse<T> {
         this.body = object;
     }
 
-    public HttpResponse(org.apache.http.HttpResponse response, Class<T> responseClass, ObjectMapper objectMapper) {
+    public HttpResponse(org.apache.http.HttpResponse response, Class<T> responseClass) {
         this.responseClass = responseClass;
-        this.objectMapper = objectMapper;
         HttpEntity responseEntity = response.getEntity();
 
         Header[] allHeaders = response.getAllHeaders();
@@ -126,7 +125,7 @@ public class HttpResponse<T> {
     }
 
     public T getBody() {
-        if(this.body == null) {
+        if (this.body == null) {
             this.body = parseBody();
         }
         return body;
@@ -144,16 +143,14 @@ public class HttpResponse<T> {
             return (T) new JsonNode(bodyString);
         } else if (String.class.equals(responseClass)) {
             return (T) bodyString;
-        }  else if (objectMapper != null) {
-            return objectMapper.readValue(bodyString, responseClass);
         } else {
-            throw new RuntimeException("Only String, JsonNode and InputStream are supported, or an ObjectMapper implementation is required.");
+            return getObjectMapper().readValue(bodyString, responseClass);
         }
     }
 
-    private String readBodyAsString()  {
+    private String readBodyAsString() {
         try {
-            if(this.rawBody == null) {
+            if (this.rawBody == null) {
                 return null;
             }
             String charset = getCharset();
@@ -164,7 +161,7 @@ public class HttpResponse<T> {
                 sb.append(line);
             }
             return sb.toString();
-        }catch (IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -172,7 +169,7 @@ public class HttpResponse<T> {
     private String getCharset() {
         String charset = Constants.UTF_8;
 
-        String contentType = headers.getFirst("Content-Type");
+        String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
         if (contentType != null) {
             String responseCharset = ResponseUtils.getCharsetFromContentType(contentType);
             if (responseCharset != null && !responseCharset.trim().equals("")) {
@@ -180,5 +177,18 @@ public class HttpResponse<T> {
             }
         }
         return charset;
+    }
+
+    private ObjectMapper getObjectMapper() {
+        String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
+        if (contentType == null) {
+            return null;
+        }
+        MediaType mediaType = MediaType.valueOf(contentType);
+        ObjectMapper mapper = ObjectMappers.getMapper(mediaType);
+        if (mapper == null) {
+            throw new RuntimeException("No ObjectMapper found for response with Content-Type: " + contentType);
+        }
+        return mapper;
     }
 }

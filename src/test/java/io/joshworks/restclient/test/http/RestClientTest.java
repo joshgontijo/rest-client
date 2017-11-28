@@ -30,9 +30,12 @@ import io.joshworks.restclient.http.ClientContainer;
 import io.joshworks.restclient.http.Headers;
 import io.joshworks.restclient.http.HttpResponse;
 import io.joshworks.restclient.http.JsonNode;
+import io.joshworks.restclient.http.MediaType;
 import io.joshworks.restclient.http.RestClient;
 import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
+import io.joshworks.restclient.http.mapper.JsonMapper;
+import io.joshworks.restclient.http.mapper.ObjectMappers;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import io.joshworks.restclient.test.helper.TestData;
@@ -1062,6 +1065,23 @@ public class RestClientTest {
         HttpResponse<TestData> getResponse = client.post(BASE_URL + "/echoJson")
                 .header("accept", "application/json")
                 .header("Content-Type", "application/json")
+                .body(testData).asObject(TestData.class);
+
+        assertEquals(200, getResponse.getStatus());
+        assertNotNull(getResponse.getBody());
+        assertEquals(testData, getResponse.getBody());
+    }
+
+    @Test
+    @Ignore("Remove when upgraded to snappy:0.3")
+    public void customObjectMapper() throws Exception {
+        String contentType = "application/custom-type";
+        ObjectMappers.register(MediaType.valueOf(contentType), new JsonMapper());
+
+        TestData testData = new TestData("yolo");
+        HttpResponse<TestData> getResponse = client.post(BASE_URL + "/echoCustomType")
+                .header("accept", contentType)
+                .header("Content-Type", contentType)
                 .body(testData).asObject(TestData.class);
 
         assertEquals(200, getResponse.getStatus());

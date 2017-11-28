@@ -40,25 +40,22 @@ public class ClientRequest {
     private final CloseableHttpClient syncClient;
     private final CloseableHttpAsyncClient asyncClient;
     private final Map<String, Object> defaultHeaders;
-    public final ObjectMapper objectMapper;
     public final String url;
     public final HttpMethod httpMethod;
 
-    ClientRequest(HttpMethod httpMethod, String url, CloseableHttpClient syncClient, CloseableHttpAsyncClient asyncClient, Map<String, Object> defaultHeaders, ObjectMapper objectMapper) {
+    ClientRequest(HttpMethod httpMethod, String url, CloseableHttpClient syncClient, CloseableHttpAsyncClient asyncClient, Map<String, Object> defaultHeaders) {
         this.url = url;
         this.httpMethod = httpMethod;
         this.syncClient = syncClient;
         this.asyncClient = asyncClient;
         this.defaultHeaders = defaultHeaders;
-        this.objectMapper = objectMapper;
     }
 
     private static final String USER_AGENT = "rest-client/1.5.1";
 
-    private static <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(
+    private <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(
             final Class<T> responseClass,
-            final Callback<T> callback,
-            final ObjectMapper objectMapper) {
+            final Callback<T> callback) {
         if (callback == null)
             return null;
 
@@ -69,7 +66,7 @@ public class ClientRequest {
             }
 
             public void completed(org.apache.http.HttpResponse arg0) {
-                callback.completed(new HttpResponse<>(arg0, responseClass, objectMapper));
+                callback.completed(new HttpResponse<>(arg0, responseClass));
             }
 
             public void failed(Exception arg0) {
@@ -103,7 +100,7 @@ public class ClientRequest {
             public void cancelled() {
                 //do nothing
             }
-        }, objectMapper));
+        }));
 
         return completableFuture;
     }
@@ -119,7 +116,7 @@ public class ClientRequest {
             asyncClient.start();
         }
 
-        final Future<org.apache.http.HttpResponse> future = asyncClient.execute(requestObj, prepareCallback(responseClass, callback, objectMapper));
+        final Future<org.apache.http.HttpResponse> future = asyncClient.execute(requestObj, prepareCallback(responseClass, callback));
 
         return new Future<HttpResponse<T>>() {
 
@@ -145,12 +142,12 @@ public class ClientRequest {
 
             private HttpResponse<T> getResponse() throws ExecutionException, InterruptedException {
                 org.apache.http.HttpResponse httpResponse = future.get();
-                return new HttpResponse<>(httpResponse, responseClass, objectMapper);
+                return new HttpResponse<>(httpResponse, responseClass);
             }
 
             private HttpResponse<T> getResponse(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
                 org.apache.http.HttpResponse httpResponse = future.get(timeout, unit);
-                return new HttpResponse<>(httpResponse, responseClass, objectMapper);
+                return new HttpResponse<>(httpResponse, responseClass);
             }
         };
     }
@@ -165,7 +162,7 @@ public class ClientRequest {
         try {
 
             response = syncClient.execute(requestObj);
-            HttpResponse<T> httpResponse = new HttpResponse<>(response, responseClass, objectMapper);
+            HttpResponse<T> httpResponse = new HttpResponse<>(response, responseClass);
             requestObj.releaseConnection();
             return httpResponse;
         } catch (Exception e) {

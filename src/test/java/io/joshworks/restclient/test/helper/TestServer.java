@@ -42,6 +42,7 @@ public class TestServer {
         //echo
         get("/echo", exchange -> exchange.send(getRequestData(exchange)));
         post("/echo", exchange -> exchange.send(getRequestData(exchange)));
+        post("/echoCustomType", exchange -> exchange.send(exchange.body().asObject(TestData.class)), consumes("application/custom-type"), produces("application/custom-type"));
         multipart("/echoMultipart", exchange -> {
             Map<String, Object> echoResponse = getRequestData(exchange);
             echoResponse.put("body", extractFormData(exchange));

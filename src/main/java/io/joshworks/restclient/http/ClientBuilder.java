@@ -1,7 +1,5 @@
 package io.joshworks.restclient.http;
 
-import io.joshworks.restclient.http.mapper.JsonMapper;
-import io.joshworks.restclient.http.mapper.ObjectMapper;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -26,12 +24,11 @@ public class ClientBuilder {
     private int connectionTimeout = 10000;
     private int socketTimeout = 60000;
     private int maxTotal = 20;
-    private boolean followredirect = true;
+    private boolean followRedirect = true;
     private String baseUrl = "";
 //        private int maxPerRoute = 20;
 
     private Function<String, String> urlTransformer = (url) -> url;
-    private ObjectMapper objectMapper = new JsonMapper();
 
     private HttpHost proxy;
     private String cookieSpec = CookieSpecs.STANDARD;
@@ -42,7 +39,7 @@ public class ClientBuilder {
         try {
             // Create common default configuration
             RequestConfig clientConfig = RequestConfig.custom()
-                    .setRedirectsEnabled(followredirect)
+                    .setRedirectsEnabled(followRedirect)
                     .setConnectTimeout(connectionTimeout)
                     .setSocketTimeout(socketTimeout)
                     .setConnectionRequestTimeout(socketTimeout)
@@ -72,7 +69,7 @@ public class ClientBuilder {
                     .build();
 
 
-            RestClient restClient = new RestClient(baseUrl, objectMapper, defaultHeaders, urlTransformer, asyncConnectionManager, syncConnectionManager, asyncClient, syncClient);
+            RestClient restClient = new RestClient(baseUrl, defaultHeaders, urlTransformer, asyncConnectionManager, syncConnectionManager, asyncClient, syncClient);
             ClientContainer.addClient(restClient);
             return restClient;
 
@@ -92,7 +89,7 @@ public class ClientBuilder {
     }
 
     public ClientBuilder followRedirect(boolean followRedirect) {
-        this.followredirect = followRedirect;
+        this.followRedirect = followRedirect;
         return this;
     }
 
@@ -116,16 +113,6 @@ public class ClientBuilder {
      */
     public ClientBuilder proxy(HttpHost proxy) {
         this.proxy = proxy;
-        return this;
-    }
-
-    /**
-     * Set the ObjectMapper implementation to use for Response to Object binding
-     *
-     * @param objectMapper Custom implementation of ObjectMapper interface
-     */
-    public ClientBuilder objectMapper(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
         return this;
     }
 

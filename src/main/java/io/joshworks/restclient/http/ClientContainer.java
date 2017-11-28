@@ -1,5 +1,6 @@
 package io.joshworks.restclient.http;
 
+import io.joshworks.restclient.http.mapper.ObjectMappers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
