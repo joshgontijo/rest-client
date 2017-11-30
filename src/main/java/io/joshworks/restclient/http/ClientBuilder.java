@@ -1,8 +1,17 @@
 package io.joshworks.restclient.http;
 
 import org.apache.http.HttpHost;
+import org.apache.http.HttpRequestInterceptor;
+import org.apache.http.HttpResponseInterceptor;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -12,70 +21,99 @@ import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 public class ClientBuilder {
 
-
-    ClientBuilder() {
-    }
-
-    private int connectionTimeout = 10000;
-    private int socketTimeout = 60000;
+    private CredentialsProvider credentialsProvider;
     private int maxTotal = 20;
-    private boolean followRedirect = true;
     private String baseUrl = "";
-//        private int maxPerRoute = 20;
 
     private Function<String, String> urlTransformer = (url) -> url;
-
-    private HttpHost proxy;
-    private String cookieSpec = CookieSpecs.STANDARD;
-
     private Map<String, Object> defaultHeaders = new HashMap<>();
+
+    private RequestConfig.Builder configBuilder = RequestConfig.custom();
+    private List<HttpRequestInterceptor> requestInterceptors = new LinkedList<>();
+    private List<HttpResponseInterceptor> responseInterceptor = new LinkedList<>();
+    private boolean disableCookies;
+    private final CookieStore cookieStore = new BasicCookieStore();
+
+    ClientBuilder() {
+        configBuilder.setCookieSpec(CookieSpecs.STANDARD);
+    }
 
     public RestClient build() {
         try {
-            // Create common default configuration
-            RequestConfig clientConfig = RequestConfig.custom()
-                    .setRedirectsEnabled(followRedirect)
-                    .setConnectTimeout(connectionTimeout)
-                    .setSocketTimeout(socketTimeout)
-                    .setConnectionRequestTimeout(socketTimeout)
-                    .setProxy(proxy)
-                    .setCookieSpec(cookieSpec)
-                    .build();
+
+            RequestConfig clientConfig = configBuilder.build();
 
             PoolingHttpClientConnectionManager syncConnectionManager = new PoolingHttpClientConnectionManager();
             syncConnectionManager.setMaxTotal(maxTotal);
-//            syncConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
+            CloseableHttpClient syncClient = createSyncClient(clientConfig, syncConnectionManager);
 
-
-            CloseableHttpClient syncClient = HttpClientBuilder.create()
-                    .setDefaultRequestConfig(clientConfig)
-                    .setConnectionManager(syncConnectionManager)
-                    .build();
-
-
-            DefaultConnectingIOReactor ioreactor = new DefaultConnectingIOReactor();
-            PoolingNHttpClientConnectionManager asyncConnectionManager = new PoolingNHttpClientConnectionManager(ioreactor);
+            DefaultConnectingIOReactor ioReactor = new DefaultConnectingIOReactor();
+            PoolingNHttpClientConnectionManager asyncConnectionManager = new PoolingNHttpClientConnectionManager(ioReactor);
             asyncConnectionManager.setMaxTotal(maxTotal);
-//                asyncConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
 
-            CloseableHttpAsyncClient asyncClient = HttpAsyncClientBuilder.create()
-                    .setDefaultRequestConfig(clientConfig)
-                    .setConnectionManager(asyncConnectionManager)
-                    .build();
+            CloseableHttpAsyncClient asyncClient = createAsyncClient(clientConfig, asyncConnectionManager);
 
-
-            RestClient restClient = new RestClient(baseUrl, defaultHeaders, urlTransformer, asyncConnectionManager, syncConnectionManager, asyncClient, syncClient);
+            RestClient restClient = new RestClient(baseUrl, defaultHeaders, urlTransformer, asyncConnectionManager, syncConnectionManager, asyncClient, syncClient, cookieStore);
             ClientContainer.addClient(restClient);
             return restClient;
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private CloseableHttpAsyncClient createAsyncClient(RequestConfig clientConfig, PoolingNHttpClientConnectionManager manager) {
+        HttpAsyncClientBuilder asyncBuilder = HttpAsyncClientBuilder.create()
+                .setDefaultRequestConfig(clientConfig)
+                .setDefaultCookieStore(cookieStore)
+                .setConnectionManager(manager);
+        if (disableCookies) {
+            asyncBuilder.disableCookieManagement();
+        }
+
+        return addInterceptors(asyncBuilder).build();
+    }
+
+    private CloseableHttpClient createSyncClient(RequestConfig clientConfig, HttpClientConnectionManager manager) {
+
+        HttpClientBuilder syncBuilder = HttpClientBuilder.create()
+                .setDefaultRequestConfig(clientConfig)
+                .setDefaultCookieStore(cookieStore)
+                .setDefaultCredentialsProvider(credentialsProvider)
+                .setConnectionManager(manager);
+
+        if (disableCookies) {
+            syncBuilder.disableCookieManagement();
+        }
+
+        return addInterceptors(syncBuilder).build();
+    }
+
+    private HttpClientBuilder addInterceptors(HttpClientBuilder builder) {
+        for (HttpRequestInterceptor interceptor : requestInterceptors) {
+            builder.addInterceptorLast(interceptor);
+        }
+        for (HttpResponseInterceptor interceptor : responseInterceptor) {
+            builder.addInterceptorLast(interceptor);
+        }
+        return builder;
+    }
+
+    private HttpAsyncClientBuilder addInterceptors(HttpAsyncClientBuilder builder) {
+        for (HttpRequestInterceptor interceptor : requestInterceptors) {
+            builder.addInterceptorLast(interceptor);
+        }
+        for (HttpResponseInterceptor interceptor : responseInterceptor) {
+            builder.addInterceptorLast(interceptor);
+        }
+        return builder;
     }
 
     public ClientBuilder baseUrl(String baseUrl) {
@@ -89,12 +127,32 @@ public class ClientBuilder {
     }
 
     public ClientBuilder followRedirect(boolean followRedirect) {
-        this.followRedirect = followRedirect;
+        configBuilder.setRedirectsEnabled(followRedirect);
+        return this;
+    }
+
+    public ClientBuilder interceptor(HttpRequestInterceptor interceptor) {
+        this.requestInterceptors.add(interceptor);
+        return this;
+    }
+
+    public ClientBuilder interceptor(HttpResponseInterceptor interceptor) {
+        this.responseInterceptor.add(interceptor);
+        return this;
+    }
+
+    public ClientBuilder disableCookies() {
+        this.disableCookies = true;
         return this;
     }
 
     public ClientBuilder defaultHeader(String key, long value) {
         this.defaultHeaders.put(key, value);
+        return this;
+    }
+
+    public ClientBuilder credentialProvider(CredentialsProvider provider) {
+        this.credentialsProvider = provider;
         return this;
     }
 
@@ -104,16 +162,19 @@ public class ClientBuilder {
     }
 
     public ClientBuilder cookieSpec(String cookieSpec) {
-        this.cookieSpec = cookieSpec;
+        configBuilder.setCookieSpec(cookieSpec);
         return this;
     }
 
-    /**
-     * Set a proxy
-     */
     public ClientBuilder proxy(HttpHost proxy) {
-        this.proxy = proxy;
+        configBuilder.setProxy(proxy);
         return this;
+    }
+
+    public ClientBuilder proxy(HttpHost proxy, Credentials credentials) {
+        this.credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(new AuthScope(proxy.getHostName(), proxy.getPort()), credentials);
+        return this.proxy(proxy);
     }
 
     /**
@@ -123,8 +184,7 @@ public class ClientBuilder {
      * @param socketTimeout     The timeout to receive data (in milliseconds). Default is 60000. Set to zero to disable the timeout.
      */
     public ClientBuilder timeout(int connectionTimeout, int socketTimeout) {
-        this.connectionTimeout = connectionTimeout;
-        this.socketTimeout = socketTimeout;
+        configBuilder.setSocketTimeout(socketTimeout).setConnectionRequestTimeout(connectionTimeout);
         return this;
     }
 

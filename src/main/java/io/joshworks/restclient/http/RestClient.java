@@ -27,6 +27,7 @@ package io.joshworks.restclient.http;
 
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequestWithBody;
+import org.apache.http.client.CookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
@@ -55,6 +56,7 @@ public class RestClient implements Closeable {
 
     private final CloseableHttpAsyncClient asyncClient;
     private final CloseableHttpClient syncClient;
+    private final CookieStore cookieStore;
 
     RestClient(String baseUrl,
                Map<String, Object> defaultHeaders,
@@ -62,13 +64,14 @@ public class RestClient implements Closeable {
                PoolingNHttpClientConnectionManager asyncConnectionManager,
                PoolingHttpClientConnectionManager syncConnectionManager,
                CloseableHttpAsyncClient asyncClient,
-               CloseableHttpClient syncClient) {
+               CloseableHttpClient syncClient, CookieStore cookieStore) {
         this.baseUrl = baseUrl;
         this.urlTransformer = urlTransformer;
         this.asyncConnectionManager = asyncConnectionManager;
         this.syncConnectionManager = syncConnectionManager;
         this.asyncClient = asyncClient;
         this.syncClient = syncClient;
+        this.cookieStore = cookieStore;
         this.defaultHeaders.putAll(defaultHeaders);
         this.id = UUID.randomUUID().toString().substring(0, 8);
     }
@@ -103,6 +106,10 @@ public class RestClient implements Closeable {
 
     public HttpRequestWithBody put(String url) {
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.PUT, resolveUrl(url), syncClient, asyncClient, defaultHeaders));
+    }
+
+    public CookieStore cookieStore() {
+        return cookieStore;
     }
 
     private String resolveUrl(String url) {
