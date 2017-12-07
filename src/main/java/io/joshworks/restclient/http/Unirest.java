@@ -12,7 +12,7 @@ public class Unirest {
 
     private static RestClient getClient() {
         if (client == null) {
-            synchronized (RestClient.class) {
+            synchronized (Unirest.class) {
                 if (client == null) {
                     client = RestClient.builder().build();
                 }
@@ -23,7 +23,10 @@ public class Unirest {
 
     public static void close() {
         if (client != null) {
-            client.close();
+            synchronized (Unirest.class) {
+                client.close();
+                client = null;
+            }
         }
     }
 

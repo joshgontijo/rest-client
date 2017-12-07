@@ -5,7 +5,7 @@
     <groupId>io.joshworks.unirest</groupId>
     <artifactId>unirest-java</artifactId>
     <packaging>jar</packaging>
-    <version>1.5.1</version>
+    <version>1.5.2</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -24,11 +24,11 @@
     <name>Unirest java</name>
     <description>Restful Java client based on Unirest</description>
 
-    <url>https://github.com/josueeduardo</url>
+    <url>https://github.com/josueeduardo/rest-client</url>
     <scm>
-        <connection>https://github.com/josueeduardo/snappy.git</connection>
-        <developerConnection>https://github.com/josueeduardo/snappy.git</developerConnection>
-        <url>https://github.com/josueeduardo/snappy</url>
+        <connection>https://github.com/josueeduardo/rest-client.git</connection>
+        <developerConnection>https://github.com/josueeduardo/rest-client.git</developerConnection>
+        <url>https://github.com/josueeduardo/rest-client</url>
     </scm>
     <developers>
         <developer>

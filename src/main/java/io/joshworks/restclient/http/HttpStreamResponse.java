@@ -23,15 +23,40 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package io.joshworks.restclient.http.async;
+package io.joshworks.restclient.http;
 
-import io.joshworks.restclient.http.HttpResponse;
+import io.joshworks.restclient.http.exceptions.RestClientException;
+import org.apache.http.client.methods.HttpRequestBase;
 
-public interface Callback<T> {
+import java.io.IOException;
+import java.io.InputStream;
 
-    void completed(HttpResponse<T> response);
+class HttpStreamResponse<T> extends HttpResponse<T> {
 
-    void failed(Exception e);
+    private final HttpRequestBase request;
 
-    void cancelled();
+    HttpStreamResponse(org.apache.http.HttpResponse response, Class<T> responseClass, HttpRequestBase request) {
+        super(response, responseClass);
+        this.request = request;
+    }
+
+    @Override
+    public T getBody() {
+        return (T) super.rawBody;
+    }
+
+    @Override
+    protected InputStream consumeBody(org.apache.http.HttpResponse response) {
+        try {
+            return response.getEntity().getContent();
+        } catch (IOException e) {
+            throw new RestClientException(e);
+        }
+    }
+
+    @Override
+    public void close() {
+       super.close();
+       request.releaseConnection();
+    }
 }

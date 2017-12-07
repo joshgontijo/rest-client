@@ -23,42 +23,37 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package io.joshworks.restclient.test.http;
+package io.joshworks.restclient.http;
 
-import io.joshworks.restclient.http.ClientBuilder;
-import io.joshworks.restclient.http.ClientContainer;
-import io.joshworks.restclient.http.Headers;
-import io.joshworks.restclient.http.HttpResponse;
-import io.joshworks.restclient.http.JsonNode;
-import io.joshworks.restclient.http.MediaType;
-import io.joshworks.restclient.http.RestClient;
+import io.joshworks.restclient.helper.TestData;
+import io.joshworks.restclient.helper.TestServer;
+import io.joshworks.restclient.helper.TestUtils;
 import io.joshworks.restclient.http.async.Callback;
-import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.http.mapper.JsonMapper;
 import io.joshworks.restclient.http.mapper.ObjectMappers;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
-import io.joshworks.restclient.test.helper.TestData;
-import io.joshworks.restclient.test.helper.TestServer;
-import io.joshworks.restclient.test.helper.TestUtils;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
+import org.apache.http.pool.PoolStats;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -195,12 +190,23 @@ public class RestClientTest {
     public void postBinaryUTF8() throws Exception {
         String value = "こんにちは";
         HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
-                .part("param3", value)
+                .part("param3", value, "text/plain; charset=UTF-8")
                 .part("file", new File(getClass().getResource("/test").toURI()))
                 .asJson();
 
         assertEquals("This is a test file", response.getBody().getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
         assertEquals(value, response.getBody().getObject().getJSONObject("body").getJSONArray("param3").getString(0));
+    }
+
+    @Test
+    public void partWithType() throws Exception {
+        String type = "text/plain; charset=UTF-8";
+        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+                .part("file", new File(getClass().getResource("/test").toURI()), type)
+                .asJson();
+
+        assertEquals(type, response.getBody().getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type"));
+        assertEquals("This is a test file", response.getBody().getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
     }
 
     @Test
@@ -335,7 +341,7 @@ public class RestClientTest {
                 .asJsonAsync(new Callback<JsonNode>() {
 
                     @Override
-                    public void failed(RestClientException e) {
+                    public void failed(Exception e) {
                         e.printStackTrace();
                         fail();
                     }
@@ -396,7 +402,7 @@ public class RestClientTest {
     }
 
     @Test
-    public void formData_contentType() throws Exception {
+    public void formData_contentType() {
         HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
                 .field("name", "Mark")
                 .asJson();
@@ -407,30 +413,16 @@ public class RestClientTest {
     }
 
     @Test
-    @Ignore
-    public void multipart_async_largeFile() throws Exception {
-        long size = 1073741824; //1GB
-        Future<HttpResponse<String>> response = client.post(BASE_URL + "/upload")
-                .part("name", "Mark")
-                .part("file", TestUtils.mockStream(size), "someFile.txt")
-                .asStringAsync();
-
-        HttpResponse<String> stringHttpResponse = response.get();
-        assertEquals(200, stringHttpResponse.getStatus());
-        assertEquals(size, Long.parseLong(stringHttpResponse.getBody()));
-    }
-
-    @Test
     public void multipartContentType() throws Exception {
         HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
-                .part("file", new File(getClass().getResource("/image.jpg").toURI()), "image/jpeg")
+                .part("file", new File(getClass().getResource("/test").toURI()), "text/plain")
                 .asJson();
 
         validateBasicResponseFields(response);
 
         JsonNode json = response.getBody();
-        assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains("image/jpeg"));
+        assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains("text/plain"));
         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
     }
 
@@ -439,7 +431,7 @@ public class RestClientTest {
     public void multipartInputStreamContentType() throws Exception {
         HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
-                .part("file", new FileInputStream(new File(getClass().getResource("/image.jpg").toURI())), "image.jpg")
+                .part("file", new FileInputStream(new File(getClass().getResource("/test").toURI())), "test.txt")
                 .asJson();
 
         validateBasicResponseFields(response);
@@ -466,16 +458,16 @@ public class RestClientTest {
     }
 
     @Test
-    public void multipartInputStreamContentTypeAsync() throws Exception {
+    public void multipartInputStreamAsync_withoutContentType() throws Exception {
         final CountDownLatch lock = new CountDownLatch(1);
         client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
                 .part("file", new FileInputStream(new File(getClass().getResource("/test").toURI())), "test")
                 .asJsonAsync(new Callback<JsonNode>() {
 
-                    public void failed(RestClientException e) {
+                    public void failed(Exception e) {
                         e.printStackTrace();
-                        fail();
+                        fail(e.getMessage());
                     }
 
                     public void completed(HttpResponse<JsonNode> response) {
@@ -501,13 +493,10 @@ public class RestClientTest {
 
     @Test
     public void testMultipartByteContentType() throws Exception {
-        final InputStream stream = new FileInputStream(new File(getClass().getResource("/image.jpg").toURI()));
-        final byte[] bytes = new byte[stream.available()];
-        stream.read(bytes);
-        stream.close();
+        final byte[] bytes = Files.readAllBytes(Paths.get(this.getClass().getResource("/test").toURI()));
         HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
-                .part("file", bytes, "image.jpg")
+                .part("file", bytes, "test.txt")
                 .asJson();
 
         JsonNode json = response.getBody();
@@ -528,7 +517,7 @@ public class RestClientTest {
                 .part("file", bytes, "test")
                 .asJsonAsync(new Callback<JsonNode>() {
 
-                    public void failed(RestClientException e) {
+                    public void failed(Exception e) {
                         e.printStackTrace();
                         fail();
                     }
@@ -578,7 +567,7 @@ public class RestClientTest {
                 .part("file", new File(getClass().getResource("/test").toURI()))
                 .asJsonAsync(new Callback<JsonNode>() {
 
-                    public void failed(RestClientException e) {
+                    public void failed(Exception e) {
                         e.printStackTrace();
                         fail();
                     }
@@ -673,23 +662,49 @@ public class RestClientTest {
     }
 
     @Test
-    public void setTimeouts() throws Exception {
+    public void connectionTimeout() throws Exception {
         RestClient customClient = null;
         try {
-            int timeout = 3000;
-            customClient = RestClient.builder().timeout(timeout, 10000).build();
+            int connectionTimeout = 3000;
+            customClient = RestClient.builder().timeout(connectionTimeout, -1).build();
             String address = "http://" + findAvailableIpAddress() + "/";
             long start = System.currentTimeMillis();
             try {
                 client.get("http://" + address + "/").asString();
             } catch (Exception e) {
                 long diff = System.currentTimeMillis() - start;
-                if (diff >= timeout) { // Add 100ms for code execution
-                    fail("Expected timeout of less than " + timeout + ", got " + diff);
+                if (diff >= connectionTimeout) { // Add 100ms for code execution
+                    fail("Expected connectionTimeout of less than " + connectionTimeout + ", got " + diff);
                 }
             }
 
         } finally {
+            if (customClient != null) {
+                customClient.close();
+            }
+        }
+    }
+
+    @Test
+    public void socketTimeout() {
+        RestClient customClient = null;
+        try {
+            int socketTimeout = 3000;
+            customClient = RestClient.builder().timeout(-1, socketTimeout).build();
+            long start = System.currentTimeMillis();
+            try {
+                customClient.get(BASE_URL + "/hang").asString();
+            } catch (Exception e) {
+                long diff = System.currentTimeMillis() - start;
+                if (diff >= socketTimeout * 2) { // Add some fat to the code completion
+                    fail("Expected socketTimeout of less than " + socketTimeout + ", got " + diff);
+                }
+            }
+
+        } finally {
+            TestServer.stop();
+            TestServer.start();
+
             if (customClient != null) {
                 customClient.close();
             }
@@ -817,7 +832,7 @@ public class RestClientTest {
                 .body("{\"hello\":\"world\"}")
                 .asJsonAsync(new Callback<JsonNode>() {
 
-                    public void failed(RestClientException e) {
+                    public void failed(Exception e) {
                         fail();
                     }
 
@@ -850,7 +865,7 @@ public class RestClientTest {
                 .field("hello", "world")
                 .asJsonAsync(new Callback<JsonNode>() {
 
-                    public void failed(RestClientException e) {
+                    public void failed(Exception e) {
                         fail();
                     }
 
@@ -1073,20 +1088,38 @@ public class RestClientTest {
     }
 
     @Test
-    @Ignore("Remove when upgraded to snappy:0.3")
-    public void customObjectMapper() throws Exception {
-        String contentType = "application/custom-type";
-        ObjectMappers.register(MediaType.valueOf(contentType), new JsonMapper());
+    public void binaryCloseConnection() {
+        String sourceString = "AAAAAAAAAAAAA";
+
+        try (HttpResponse<InputStream> response = client.post(BASE_URL + "/echoBinary")
+                .header("Content-type", "text/plain")
+                .body(sourceString.getBytes())
+                .asBinary()) {
+
+            InputStream body = response.getBody();
+            String received = TestUtils.toString(body);
+            assertEquals(sourceString, received);
+
+            PoolStats stats = client.stats(RestClient.ClientType.SYNC);
+            assertEquals(1, stats.getLeased());
+        }
+        PoolStats stats = client.stats(RestClient.ClientType.SYNC);
+        assertEquals(0, stats.getLeased());
+    }
+
+    @Test
+    public void customObjectMapper() {
+
+        ObjectMappers.register(MediaType.valueOf(TestServer.contentType), new JsonMapper());
 
         TestData testData = new TestData("yolo");
-        HttpResponse<TestData> getResponse = client.post(BASE_URL + "/echoCustomType")
-                .header("accept", contentType)
-                .header("Content-Type", contentType)
+        HttpResponse<TestData> response = client.post(BASE_URL + "/echoCustomType")
+                .header("accept", TestServer.contentType)
+                .header("Content-Type", TestServer.contentType)
                 .body(testData).asObject(TestData.class);
 
-        assertEquals(200, getResponse.getStatus());
-        assertNotNull(getResponse.getBody());
-        assertEquals(testData, getResponse.getBody());
+        assertEquals(200, response.getStatus());
+        assertEquals(testData, response.getBody());
     }
 
 
@@ -1134,6 +1167,23 @@ public class RestClientTest {
 
             assertEquals(200, postResponse.getStatus());
         }
+    }
+
+    @Test
+    public void noCookieSpec() {
+        String value = "COOKIE-VALUE-A";
+        String key = "COOKIEA";
+        try (RestClient cookieClient = RestClient.builder().build()) {
+            HttpResponse<String> response = cookieClient.get(BASE_URL + "/set-cookie")
+                    .queryString(key, value)
+                    .asString();
+
+            assertEquals(200, response.getStatus());
+            List<String> cookies = response.getHeaders().get("Set-Cookie");
+            assertEquals(1, cookies.size());
+            assertEquals(key + "=" + value, cookies.get(0));
+        }
+
     }
 
 }

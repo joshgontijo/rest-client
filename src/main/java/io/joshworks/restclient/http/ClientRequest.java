@@ -3,7 +3,6 @@ package io.joshworks.restclient.http;
 import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
-import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
@@ -70,7 +69,7 @@ public class ClientRequest {
             }
 
             public void failed(Exception arg0) {
-                callback.failed(new RestClientException(arg0));
+                callback.failed(arg0);
             }
 
         };
@@ -92,7 +91,7 @@ public class ClientRequest {
             }
 
             @Override
-            public void failed(RestClientException e) {
+            public void failed(Exception e) {
                 completableFuture.completeExceptionally(e);
             }
 
@@ -153,26 +152,15 @@ public class ClientRequest {
     }
 
     public <T> HttpResponse<T> request(final HttpRequest request, final Class<T> responseClass) {
-        return this.doRequest(request, responseClass);
-    }
-
-    private <T> HttpResponse<T> doRequest(HttpRequest request, Class<T> responseClass) {
         HttpRequestBase requestObj = prepareRequest(request, false);
         org.apache.http.HttpResponse response;
         try {
-
             response = syncClient.execute(requestObj);
-            HttpResponse<T> httpResponse = new HttpResponse<>(response, responseClass);
-            requestObj.releaseConnection();
-            return httpResponse;
+            return HttpResponse.create(requestObj, response, responseClass);
         } catch (Exception e) {
             throw new RestClientException(e);
-        } finally {
-            requestObj.releaseConnection();
         }
-
     }
-
 
     private HttpRequestBase prepareRequest(HttpRequest request, boolean async) {
 

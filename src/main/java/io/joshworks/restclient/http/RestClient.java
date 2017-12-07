@@ -32,6 +32,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
+import org.apache.http.pool.PoolStats;
 
 import java.io.Closeable;
 import java.util.HashMap;
@@ -42,7 +43,7 @@ import java.util.function.Function;
 
 public class RestClient implements Closeable {
 
-    private static final int IDLE_CONNECTION_TIMEOUT = 30;
+    static final int IDLE_CONNECTION_TIMEOUT = 30;
 
     public final String id;
 
@@ -112,6 +113,14 @@ public class RestClient implements Closeable {
         return cookieStore;
     }
 
+    public PoolStats stats(ClientType type) {
+        return ClientType.SYNC.equals(type) ? syncConnectionManager.getTotalStats() : asyncConnectionManager.getTotalStats();
+    }
+
+   public enum ClientType {
+        SYNC, ASYNC
+   }
+
     private String resolveUrl(String url) {
         return urlTransformer.apply(baseUrl) + url;
     }
@@ -133,6 +142,7 @@ public class RestClient implements Closeable {
             // Closing the Sync HTTP client
             if (syncClient != null) {
                 syncClient.close();
+                syncConnectionManager.close();
             }
 
             // Closing the Async HTTP client (if running)

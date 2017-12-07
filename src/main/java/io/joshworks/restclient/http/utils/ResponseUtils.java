@@ -31,9 +31,9 @@ public class ResponseUtils {
         return null;
     }
 
-    public static byte[] getBytes(InputStream is) throws IOException {
+    public static byte[] readBytes(InputStream is) throws IOException {
         int len;
-        int size = 1024;
+        int size = 4096;
         byte[] buf;
 
         if (is instanceof ByteArrayInputStream) {

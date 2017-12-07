@@ -1,4 +1,4 @@
-package io.joshworks.restclient.test.helper;
+package io.joshworks.restclient.helper;
 
 public class TestData {
 

@@ -7,7 +7,6 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.impl.client.BasicCookieStore;
@@ -42,7 +41,7 @@ public class ClientBuilder {
     private final CookieStore cookieStore = new BasicCookieStore();
 
     ClientBuilder() {
-        configBuilder.setCookieSpec(CookieSpecs.STANDARD);
+
     }
 
     public RestClient build() {
@@ -184,7 +183,7 @@ public class ClientBuilder {
      * @param socketTimeout     The timeout to receive data (in milliseconds). Default is 60000. Set to zero to disable the timeout.
      */
     public ClientBuilder timeout(int connectionTimeout, int socketTimeout) {
-        configBuilder.setSocketTimeout(socketTimeout).setConnectionRequestTimeout(connectionTimeout);
+        configBuilder.setSocketTimeout(socketTimeout).setConnectTimeout(connectionTimeout);
         return this;
     }
 
