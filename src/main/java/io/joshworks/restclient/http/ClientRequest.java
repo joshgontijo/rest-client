@@ -50,7 +50,7 @@ public class ClientRequest {
         this.defaultHeaders = defaultHeaders;
     }
 
-    private static final String USER_AGENT = "rest-client/1.5.1";
+    private static final String USER_AGENT = "rest-client/1.6.0";
 
     private <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(
             final Class<T> responseClass,
