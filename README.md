@@ -28,7 +28,7 @@ Apart from the features provided by Unirest Java, this fork also provides:
 <dependency>
     <groupId>io.joshworks.unirest</groupId>
     <artifactId>unirest-java</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
 </dependency>
 ```
 
@@ -103,7 +103,6 @@ client.post("http://my-service.com/login")
 
 ```
 
-
 ### Serialization
 Before an `asObject(Class)` or a `.body(Object)` invokation, is necessary to provide a custom implementation of the `ObjectMapper` interface.
 This should be done for each client.
@@ -124,8 +123,14 @@ public class XmlMapper implements ObjectMapper {
     }
 }
 
+ObjectMappers.register(MediaType.valueOf("application/xml"), new XmlMapper());
 
-RestClient client = RestClient.builder().objectMapper(new XmlMapper()).build();
+
+HttpResponse<User> response = client.post("http://my-api.com/echo-xml")
+                .header("Accept", "application/xml")
+                .header("Content-Type", "application/xml")
+                .body(new User("John"))
+                .asObject(User.class);
 
 ```
 
