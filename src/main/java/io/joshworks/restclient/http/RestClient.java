@@ -25,6 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.http;
 
+import io.joshworks.restclient.http.utils.ClientStats;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequestWithBody;
 import org.apache.http.client.CookieStore;
@@ -32,7 +33,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
-import org.apache.http.pool.PoolStats;
 
 import java.io.Closeable;
 import java.util.HashMap;
@@ -43,7 +43,7 @@ import java.util.function.Function;
 
 public class RestClient implements Closeable {
 
-    static final int IDLE_CONNECTION_TIMEOUT = 30;
+    private static final int IDLE_CONNECTION_TIMEOUT = 30;
 
     public final String id;
 
@@ -113,13 +113,9 @@ public class RestClient implements Closeable {
         return cookieStore;
     }
 
-    public PoolStats stats(ClientType type) {
-        return ClientType.SYNC.equals(type) ? syncConnectionManager.getTotalStats() : asyncConnectionManager.getTotalStats();
+    public ClientStats stats() {
+        return new ClientStats(syncConnectionManager.getTotalStats(), asyncConnectionManager.getTotalStats());
     }
-
-   public enum ClientType {
-        SYNC, ASYNC
-   }
 
     private String resolveUrl(String url) {
         return urlTransformer.apply(baseUrl) + url;

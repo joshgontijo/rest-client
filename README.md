@@ -12,7 +12,7 @@
 
 Apart from the features provided by Unirest Java, this fork also provides:
 
-* Bug fixes
+* Major Bug fixes
 * Independent client configuration
 * Improved API
 * Updated async requests to use Java 8 CompletableFuture

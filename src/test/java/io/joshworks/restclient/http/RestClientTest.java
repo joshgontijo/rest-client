@@ -31,13 +31,13 @@ import io.joshworks.restclient.helper.TestUtils;
 import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.mapper.JsonMapper;
 import io.joshworks.restclient.http.mapper.ObjectMappers;
+import io.joshworks.restclient.http.utils.ClientStats;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
-import org.apache.http.pool.PoolStats;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
@@ -1133,11 +1133,11 @@ public class RestClientTest {
             String received = TestUtils.toString(body);
             assertEquals(sourceString, received);
 
-            PoolStats stats = client.stats(RestClient.ClientType.SYNC);
-            assertEquals(1, stats.getLeased());
+            ClientStats stats = client.stats();
+            assertEquals(1, stats.sync.getLeased());
         }
-        PoolStats stats = client.stats(RestClient.ClientType.SYNC);
-        assertEquals(0, stats.getLeased());
+        ClientStats stats = client.stats();
+        assertEquals(0, stats.sync.getLeased());
     }
 
     @Test
