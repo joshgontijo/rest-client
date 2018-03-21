@@ -164,8 +164,14 @@ public class ClientRequest {
 
     private HttpRequestBase prepareRequest(HttpRequest request, boolean async) {
 
+
+
         if (defaultHeaders != null) {
             for (Map.Entry<String, Object> entry : defaultHeaders.entrySet()) {
+                //Do not set content-type for multipart and urlencoded
+                if(entry.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE) && request.getBody().implicitContentType()) {
+                    continue;
+                }
                 request.header(entry.getKey(), String.valueOf(entry.getValue()));
             }
         }

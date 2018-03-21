@@ -37,7 +37,6 @@ public class ClientBuilder {
     private RequestConfig.Builder configBuilder = RequestConfig.custom();
     private List<HttpRequestInterceptor> requestInterceptors = new LinkedList<>();
     private List<HttpResponseInterceptor> responseInterceptor = new LinkedList<>();
-    private boolean disableCookies;
     private final CookieStore cookieStore = new BasicCookieStore();
 
     ClientBuilder() {
@@ -73,9 +72,6 @@ public class ClientBuilder {
                 .setDefaultRequestConfig(clientConfig)
                 .setDefaultCookieStore(cookieStore)
                 .setConnectionManager(manager);
-        if (disableCookies) {
-            asyncBuilder.disableCookieManagement();
-        }
 
         return addInterceptors(asyncBuilder).build();
     }
@@ -87,10 +83,6 @@ public class ClientBuilder {
                 .setDefaultCookieStore(cookieStore)
                 .setDefaultCredentialsProvider(credentialsProvider)
                 .setConnectionManager(manager);
-
-        if (disableCookies) {
-            syncBuilder.disableCookieManagement();
-        }
 
         return addInterceptors(syncBuilder).build();
     }
@@ -140,11 +132,6 @@ public class ClientBuilder {
         return this;
     }
 
-    public ClientBuilder disableCookies() {
-        this.disableCookies = true;
-        return this;
-    }
-
     public ClientBuilder defaultHeader(String key, long value) {
         this.defaultHeaders.put(key, value);
         return this;
@@ -180,7 +167,7 @@ public class ClientBuilder {
      * Set the connection timeout and socket timeout
      *
      * @param connectionTimeout The timeout until a connection with the server is established (in milliseconds). Default is 10000. Set to zero to disable the timeout.
-     * @param readTimeout     The timeout to receive data (in milliseconds). Default is 60000. Set to zero to disable the timeout.
+     * @param readTimeout       The timeout to receive data (in milliseconds). Default is 60000. Set to zero to disable the timeout.
      */
     public ClientBuilder timeout(int connectionTimeout, int readTimeout) {
         configBuilder.setSocketTimeout(readTimeout).setConnectTimeout(connectionTimeout);

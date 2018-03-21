@@ -129,4 +129,9 @@ public class MultipartBody extends BaseRequest implements Body {
         return builder.build();
     }
 
+    @Override
+    public boolean implicitContentType() {
+        return true;
+    }
+
 }

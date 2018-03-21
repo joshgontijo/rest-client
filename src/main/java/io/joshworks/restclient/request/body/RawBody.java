@@ -52,4 +52,9 @@ public class RawBody extends BaseRequest implements Body {
     public HttpEntity getEntity() {
         return new ByteArrayEntity(body);
     }
+
+    @Override
+    public boolean implicitContentType() {
+        return false;
+    }
 }

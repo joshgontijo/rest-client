@@ -47,7 +47,7 @@ public class TestUtils {
             long mega = 1048576;
             long size = 0;
 
-            byte[] buff = new byte[1048576];
+            byte[] buff = new byte[4096];
 
             int read;
             while ((read = is.read(buff)) != -1) {

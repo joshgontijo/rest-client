@@ -19,7 +19,7 @@ public class ObjectMappers {
         mappers.put(mediaType, mapper);
     }
 
-    public static void removeAll() {
+    public static void clear() {
         mappers.clear();
     }
 

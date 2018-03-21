@@ -110,6 +110,11 @@ public class FormEncodedBody extends BaseRequest implements Body {
         }
     }
 
+    @Override
+    public boolean implicitContentType() {
+        return true;
+    }
+
     private List<NameValuePair> getList(Map<String, List<Object>> parameters) {
         List<NameValuePair> result = new ArrayList<NameValuePair>();
         if (parameters != null) {
