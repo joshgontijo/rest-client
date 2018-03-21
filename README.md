@@ -17,7 +17,7 @@ Apart from the features provided by Unirest Java, this fork also provides:
 * Improved API
 * Updated async requests to use Java 8 CompletableFuture
 * Lazy response body parsing
-* Default JsonMapper using Gson
+* Default Gson json mapper
 * Single idle thread monitor for all clients
 
 
@@ -104,9 +104,9 @@ client.post("http://my-service.com/login")
 ```
 
 ### Serialization
-Before an `asObject(Class)` or a `.body(Object)` invokation, is necessary to provide a custom implementation of the `ObjectMapper` interface.
+Before using `asObject(Class)` or `.body(Object)`, is necessary to provide a custom implementation of the `ObjectMapper` interface.
 This should be done for each client.
-By default Gson is used as the default serializer, so there's no need to register any other unless you need custom configuration.
+By default Gson is used as the default serializer, so there's no need to register any other unless you want a custom configuration.
 Here's how to configure a new ObjectMapper:
 
 ```java
@@ -123,7 +123,7 @@ public class XmlMapper implements ObjectMapper {
     }
 }
 
-ObjectMappers.register(MediaType.valueOf("application/xml"), new XmlMapper());
+ObjectMappers.register(MediaType.APPLICATION_XML_TYPE, new XmlMapper());
 
 
 HttpResponse<User> response = client.post("http://my-api.com/echo-xml")
@@ -131,6 +131,23 @@ HttpResponse<User> response = client.post("http://my-api.com/echo-xml")
                 .header("Content-Type", "application/xml")
                 .body(new User("John"))
                 .asObject(User.class);
+
+```
+
+### Client stats
+The API also exposes HttpClient's PoolStats, so you can inpsect the usage of each client.
+
+```java
+   
+   ClientStats stats = client.stats();
+   int leased = stats.sync.getLeased();
+   int available = stats.sync.getAvailable();
+   int max = stats.sync.getMax();
+   int pending = stats.sync.getPending();
+
+   //All clients
+   Map<String, ClientStats> allStats = ClientContainer.stats();
+   //...
 
 ```
 
