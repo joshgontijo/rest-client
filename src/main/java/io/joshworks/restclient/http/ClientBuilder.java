@@ -180,10 +180,10 @@ public class ClientBuilder {
      * Set the connection timeout and socket timeout
      *
      * @param connectionTimeout The timeout until a connection with the server is established (in milliseconds). Default is 10000. Set to zero to disable the timeout.
-     * @param socketTimeout     The timeout to receive data (in milliseconds). Default is 60000. Set to zero to disable the timeout.
+     * @param readTimeout     The timeout to receive data (in milliseconds). Default is 60000. Set to zero to disable the timeout.
      */
-    public ClientBuilder timeout(int connectionTimeout, int socketTimeout) {
-        configBuilder.setSocketTimeout(socketTimeout).setConnectTimeout(connectionTimeout);
+    public ClientBuilder timeout(int connectionTimeout, int readTimeout) {
+        configBuilder.setSocketTimeout(readTimeout).setConnectTimeout(connectionTimeout);
         return this;
     }
 
