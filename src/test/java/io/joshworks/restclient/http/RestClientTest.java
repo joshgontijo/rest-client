@@ -51,6 +51,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -213,7 +214,7 @@ public class RestClientTest {
     @Test
     public void postRawBody() {
         String sourceString = "'\"@こんにちは-test-123";
-        byte[] sentBytes = sourceString.getBytes();
+        byte[] sentBytes = sourceString.getBytes(StandardCharsets.UTF_8);
 
         HttpResponse<String> response = client.post(BASE_URL + "/echoBinary")
                 .header("Content-type", "text/plain")
@@ -275,7 +276,7 @@ public class RestClientTest {
     public void getMultiple() {
         for (int i = 1; i <= 50; i++) {
             HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo?try=" + i).asJson();
-            assertEquals(response.getBody().getObject().getJSONObject("queryParams").getJSONArray("try").get(0), ((Integer) i).toString());
+            assertEquals(response.getBody().getObject().getJSONObject("queryParams").getJSONArray("try").get(0), String.valueOf(i));
         }
     }
 
@@ -374,7 +375,9 @@ public class RestClientTest {
                     }
                 });
 
-        lock.await(10, TimeUnit.SECONDS);
+        if(!lock.await(10, TimeUnit.SECONDS)) {
+            fail("Wait time exceeded");
+        }
         assertTrue(status);
     }
 
@@ -520,7 +523,9 @@ public class RestClientTest {
 
                 });
 
-        lock.await(10, TimeUnit.SECONDS);
+        if(!lock.await(10, TimeUnit.SECONDS)) {
+            fail("Wait time exceeded");
+        }
         assertTrue(status);
     }
 
@@ -572,7 +577,9 @@ public class RestClientTest {
 
                 });
 
-        lock.await(10, TimeUnit.SECONDS);
+        if(!lock.await(10, TimeUnit.SECONDS)) {
+            fail("Wait time exceeded");
+        }
         assertTrue(status);
     }
 
@@ -620,7 +627,9 @@ public class RestClientTest {
 
                 });
 
-        lock.await(10, TimeUnit.SECONDS);
+        if(!lock.await(10, TimeUnit.SECONDS)) {
+            fail("Wait time exceeded");
+        }
         assertTrue(status);
     }
 
@@ -883,7 +892,9 @@ public class RestClientTest {
                     }
                 });
 
-        lock.await(10, TimeUnit.SECONDS);
+        if(!lock.await(10, TimeUnit.SECONDS)) {
+            fail("Wait time exceeded");
+        }
         assertTrue(status);
     }
 
@@ -918,7 +929,9 @@ public class RestClientTest {
                     }
                 });
 
-        lock.await(10, TimeUnit.SECONDS);
+        if(!lock.await(10, TimeUnit.SECONDS)) {
+            fail("Wait time exceeded");
+        }
         assertTrue(status);
     }
 
@@ -1126,7 +1139,7 @@ public class RestClientTest {
 
         try (HttpResponse<InputStream> response = client.post(BASE_URL + "/echoBinary")
                 .header("Content-type", "text/plain")
-                .body(sourceString.getBytes())
+                .body(sourceString.getBytes(StandardCharsets.UTF_8))
                 .asBinary()) {
 
             InputStream body = response.getBody();

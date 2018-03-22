@@ -45,10 +45,6 @@ public class RawBody extends BaseRequest implements Body {
         return this;
     }
 
-    public Object getBody() {
-        return body;
-    }
-
     public HttpEntity getEntity() {
         return new ByteArrayEntity(body);
     }
