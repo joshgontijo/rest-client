@@ -32,6 +32,7 @@ import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.mapper.JsonMapper;
 import io.joshworks.restclient.http.mapper.ObjectMappers;
 import io.joshworks.restclient.http.utils.ClientStats;
+import io.joshworks.restclient.http.utils.URLParamEncoder;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.commons.io.Charsets;
@@ -1249,6 +1250,12 @@ public class RestClientTest {
             assertTrue(acceptEncodings.contains("gzip"));
             assertTrue(acceptEncodings.contains("deflate"));
         }
+    }
+
+    @Test
+    public void urlEncoder() {
+        String value = URLParamEncoder.encode("diëtist");
+        assertEquals("di%C3%ABtist", value);
     }
 
 }

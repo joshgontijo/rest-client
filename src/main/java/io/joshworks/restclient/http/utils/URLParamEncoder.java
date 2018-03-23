@@ -25,28 +25,20 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.http.utils;
 
+import io.joshworks.restclient.http.exceptions.RestClientException;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 public class URLParamEncoder {
 
     public static String encode(String input) {
-        StringBuilder resultStr = new StringBuilder();
-        for (char ch : input.toCharArray()) {
-            if (isUnsafe(ch)) {
-                resultStr.append('%');
-                resultStr.append(toHex(ch / 16));
-                resultStr.append(toHex(ch % 16));
-            } else {
-                resultStr.append(ch);
-            }
+        try {
+            return URLEncoder.encode(input, StandardCharsets.UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new RestClientException("Could encode value '" + input + "'", e);
         }
-        return resultStr.toString();
-    }
-
-    private static char toHex(int ch) {
-        return (char) (ch < 10 ? '0' + ch : 'A' + ch - 10);
-    }
-
-    private static boolean isUnsafe(char ch) {
-        return ch > 128 || ch < 0 || " %$&+,/:;=?@<>#%".indexOf(ch) >= 0;
     }
 
 }
