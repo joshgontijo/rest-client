@@ -23,34 +23,40 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package io.joshworks.restclient.request.body;
+package io.joshworks.restclient.http;
 
-import io.joshworks.restclient.http.ClientRequest;
-import io.joshworks.restclient.request.BaseRequest;
-import io.joshworks.restclient.request.HttpRequest;
-import org.apache.http.HttpEntity;
-import org.apache.http.entity.ByteArrayEntity;
+import io.joshworks.restclient.http.exceptions.RestClientException;
+import org.apache.http.client.methods.HttpRequestBase;
 
-public class RawBody extends BaseRequest implements Body {
+import java.io.IOException;
+import java.io.InputStream;
 
-    private byte[] body;
+class HttpStreamResponse<T> extends HttpResponse<T> {
 
-    public RawBody(HttpRequest httpRequest, ClientRequest config) {
-        super(config);
-        super.httpRequest = httpRequest;
-    }
+    private final HttpRequestBase request;
 
-    public RawBody body(byte[] body) {
-        this.body = body;
-        return this;
-    }
-
-    public HttpEntity getEntity() {
-        return new ByteArrayEntity(body);
+    HttpStreamResponse(org.apache.http.HttpResponse response, Class<T> responseClass, HttpRequestBase request) {
+        super(response, responseClass);
+        this.request = request;
     }
 
     @Override
-    public boolean implicitContentType() {
-        return false;
+    public T getBody() {
+        return (T) super.rawBody;
+    }
+
+    @Override
+    protected InputStream consumeBody(org.apache.http.HttpResponse response) {
+        try {
+            return response.getEntity().getContent();
+        } catch (IOException e) {
+            throw new RestClientException(e);
+        }
+    }
+
+    @Override
+    public void close() {
+       super.close();
+       request.releaseConnection();
     }
 }

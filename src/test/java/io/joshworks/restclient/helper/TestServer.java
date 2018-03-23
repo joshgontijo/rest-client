@@ -1,20 +1,33 @@
-package io.joshworks.restclient.test.helper;
+package io.joshworks.restclient.helper;
 
 import io.joshworks.snappy.Exchange;
 import io.joshworks.snappy.SnappyServer;
+import io.joshworks.snappy.http.MediaType;
 import io.joshworks.snappy.http.multipart.MultipartExchange;
 import io.joshworks.snappy.http.multipart.Part;
+import io.joshworks.snappy.parser.JsonParser;
+import io.joshworks.snappy.parser.Parsers;
+import io.undertow.server.handlers.CookieImpl;
 import io.undertow.util.HttpString;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static io.joshworks.snappy.SnappyServer.*;
+import static io.joshworks.snappy.SnappyServer.delete;
+import static io.joshworks.snappy.SnappyServer.enableTracer;
+import static io.joshworks.snappy.SnappyServer.get;
+import static io.joshworks.snappy.SnappyServer.head;
+import static io.joshworks.snappy.SnappyServer.multipart;
+import static io.joshworks.snappy.SnappyServer.options;
+import static io.joshworks.snappy.SnappyServer.post;
+import static io.joshworks.snappy.SnappyServer.put;
 import static io.joshworks.snappy.parser.MediaTypes.consumes;
 import static io.joshworks.snappy.parser.MediaTypes.produces;
 
@@ -23,9 +36,13 @@ import static io.joshworks.snappy.parser.MediaTypes.produces;
  */
 public class TestServer {
 
-    private Map<String, String> dataSink = new HashMap<>();
+    public static final String contentType = "application/custom-type";
 
     public static void start() {
+
+        //see RestclientTest#customObjectMapper
+        Parsers.register(MediaType.valueOf(contentType), new JsonParser());
+
         get("/hello", exchange -> exchange.send("Hello"), produces("txt"));
         head("/nullBody", Exchange::end, produces("txt"));
         get("/echo/{name}", exchange -> exchange.send(exchange.pathParameter("name"), "txt"));
@@ -42,6 +59,7 @@ public class TestServer {
         //echo
         get("/echo", exchange -> exchange.send(getRequestData(exchange)));
         post("/echo", exchange -> exchange.send(getRequestData(exchange)));
+        post("/echoCustomType", exchange -> exchange.send(exchange.body().asObject(TestData.class)), consumes(contentType), produces(contentType));
         multipart("/echoMultipart", exchange -> {
             Map<String, Object> echoResponse = getRequestData(exchange);
             echoResponse.put("body", extractFormData(exchange));
@@ -73,6 +91,15 @@ public class TestServer {
 
         get("/testData", exchange -> exchange.send(new TestData("yolo")));
         get("/gzip", exchange -> exchange.send(new TestData("yolo")));
+
+        get("/hang", exchange -> TimeUnit.MINUTES.sleep(1));
+
+        get("/set-cookie", exchange -> {
+            for (Map.Entry<String, Deque<String>> entry : exchange.queryParameters().entrySet()) {
+                exchange.cookie(new CookieImpl(entry.getKey(), entry.getValue().getFirst()));
+            }
+            exchange.end();
+        });
 
         enableTracer();
         SnappyServer.start();
@@ -119,12 +146,12 @@ public class TestServer {
         return formData;
     }
 
+    //For text files only
     private static String readFileContent(Part part) {
         try {
             return Files.readAllLines(part.file().path()).stream().collect(Collectors.joining());
         } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+           throw new RuntimeException(e);
         }
     }
 

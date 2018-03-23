@@ -27,7 +27,9 @@ package io.joshworks.restclient.request;
 
 import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.JsonNode;
+import io.joshworks.restclient.http.MediaType;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
+import io.joshworks.restclient.http.mapper.ObjectMappers;
 import io.joshworks.restclient.request.body.FormEncodedBody;
 import io.joshworks.restclient.request.body.MultipartBody;
 import io.joshworks.restclient.request.body.RawBody;
@@ -42,13 +44,11 @@ import java.util.Map;
 
 public class HttpRequestWithBody extends HttpRequest {
 
-    private final ObjectMapper mapper;
     private final ClientRequest config;
 
     public HttpRequestWithBody(ClientRequest clientRequest) {
         super(clientRequest);
         this.config = clientRequest;
-        this.mapper = clientRequest.objectMapper;
     }
 
     @Override
@@ -59,6 +59,11 @@ public class HttpRequestWithBody extends HttpRequest {
 
     @Override
     public HttpRequestWithBody contentType(String contentType) {
+        return (HttpRequestWithBody) super.contentType(contentType);
+    }
+
+    @Override
+    public HttpRequestWithBody contentType(MediaType contentType) {
         return (HttpRequestWithBody) super.contentType(contentType);
     }
 
@@ -243,8 +248,10 @@ public class HttpRequestWithBody extends HttpRequest {
     }
 
     public RequestBodyEntity body(Object body) {
+        MediaType mediaType = getContentType();
+        ObjectMapper mapper = ObjectMappers.getMapper(mediaType);
         if (mapper == null) {
-            throw new RuntimeException("Serialization Impossible. Can't find an ObjectMapper implementation.");
+            throw new RuntimeException("Cannot serialize object. No ObjectMapper implementation for type: " + mediaType.toString());
         }
 
         return body(mapper.writeValue(body));

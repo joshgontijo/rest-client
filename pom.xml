@@ -5,7 +5,7 @@
     <groupId>io.joshworks.unirest</groupId>
     <artifactId>unirest-java</artifactId>
     <packaging>jar</packaging>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -22,18 +22,18 @@
     </licenses>
 
     <name>Unirest java</name>
-    <description>Restful Java client based on Unirest</description>
+    <description>Rest Java client based on Unirest</description>
 
-    <url>https://github.com/josueeduardo</url>
+    <url>https://github.com/josueeduardo/rest-client</url>
     <scm>
-        <connection>https://github.com/josueeduardo/snappy.git</connection>
-        <developerConnection>https://github.com/josueeduardo/snappy.git</developerConnection>
-        <url>https://github.com/josueeduardo/snappy</url>
+        <connection>https://github.com/josueeduardo/rest-client.git</connection>
+        <developerConnection>https://github.com/josueeduardo/rest-client.git</developerConnection>
+        <url>https://github.com/josueeduardo/rest-client</url>
     </scm>
     <developers>
         <developer>
             <name>Josue Gontijo</name>
-            <email>josue dot egontijo at gmail dot com</email>
+            <email>josue.eduardo206@gmail.com</email>
         </developer>
     </developers>
 
@@ -53,17 +53,17 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.3.6</version>
+            <version>4.5.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpasyncclient</artifactId>
-            <version>4.0.2</version>
+            <version>4.1.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpmime</artifactId>
-            <version>4.3.6</version>
+            <version>4.5.3</version>
         </dependency>
         <dependency>
             <groupId>org.json</groupId>
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>io.joshworks.snappy</groupId>
             <artifactId>snappy</artifactId>
-            <version>0.3.0-SNAPSHOT</version>
+            <version>0.3.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

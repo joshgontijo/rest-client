@@ -7,6 +7,7 @@ import com.google.gson.Gson;
  */
 public class JsonMapper implements ObjectMapper {
     private final Gson gson = new Gson();
+
     @Override
     public <T> T readValue(String value, Class<T> valueType) {
         return gson.fromJson(value, valueType);

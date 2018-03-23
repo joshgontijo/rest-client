@@ -26,13 +26,12 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.joshworks.restclient.http.async;
 
 import io.joshworks.restclient.http.HttpResponse;
-import io.joshworks.restclient.http.exceptions.RestClientException;
 
 public interface Callback<T> {
 
     void completed(HttpResponse<T> response);
 
-    void failed(RestClientException e);
+    void failed(Exception e);
 
     void cancelled();
 }

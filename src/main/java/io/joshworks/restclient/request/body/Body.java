@@ -31,4 +31,6 @@ public interface Body {
 
     HttpEntity getEntity();
 
+    boolean implicitContentType();
+
 }

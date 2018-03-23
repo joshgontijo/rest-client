@@ -1,10 +1,12 @@
 package io.joshworks.restclient.http;
 
+import io.joshworks.restclient.http.utils.ClientStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Created by Josh Gontijo on 5/5/17.
@@ -31,8 +33,12 @@ public class ClientContainer {
         clients.remove(client.id);
     }
 
-    public int size() {
+    public static int size() {
         return clients.size();
+    }
+
+    public static Map<String, ClientStats> stats() {
+        return clients.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, d -> d.getValue().stats()));
     }
 
     public synchronized static void shutdown() {

@@ -28,6 +28,7 @@ package io.joshworks.restclient.request;
 import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.HttpMethod;
+import io.joshworks.restclient.http.MediaType;
 import io.joshworks.restclient.http.utils.Base64Coder;
 import io.joshworks.restclient.http.utils.MimeMappings;
 import io.joshworks.restclient.http.utils.URLParamEncoder;
@@ -89,6 +90,13 @@ public class HttpRequest extends BaseRequest {
         list.add(value);
         this.headers.put(name.trim(), list);
         return this;
+    }
+
+    public HttpRequest contentType(MediaType contentType) {
+        if (contentType == null) {
+            return this;
+        }
+        return this.contentType(contentType.toString());
     }
 
     public HttpRequest contentType(String contentType) {
@@ -170,6 +178,16 @@ public class HttpRequest extends BaseRequest {
 
     public Body getBody() {
         return body;
+    }
+
+    protected MediaType getContentType() {
+        List<String> types = this.headers.get(HttpHeaders.CONTENT_TYPE);
+        if(types == null || types.isEmpty()) {
+            throw new IllegalStateException("Content-Type not specified");
+        }
+        //Content-type is always a single value
+        String type = types.get(0);
+        return MediaType.valueOf(type);
     }
 
 }

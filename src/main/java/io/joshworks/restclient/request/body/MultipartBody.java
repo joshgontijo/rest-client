@@ -35,7 +35,6 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 
 import java.io.File;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 
 public class MultipartBody extends BaseRequest implements Body {
 
@@ -67,27 +66,27 @@ public class MultipartBody extends BaseRequest implements Body {
     }
 
     public MultipartBody part(String name, String value, String contentType) {
-        builder.addTextBody(name, value, ContentType.create(contentType).withCharset(StandardCharsets.UTF_8));
+        builder.addTextBody(name, value, ContentType.parse(contentType));
         return this;
     }
 
     public MultipartBody part(String name, Integer value, String contentType) {
-        builder.addTextBody(name, String.valueOf(value), ContentType.create(contentType).withCharset(StandardCharsets.UTF_8));
+        builder.addTextBody(name, String.valueOf(value), ContentType.parse(contentType));
         return this;
     }
 
     public MultipartBody part(String name, Long value, String contentType) {
-        builder.addTextBody(name, String.valueOf(value), ContentType.create(contentType).withCharset(StandardCharsets.UTF_8));
+        builder.addTextBody(name, String.valueOf(value), ContentType.parse(contentType));
         return this;
     }
 
     public MultipartBody part(String name, Boolean value, String contentType) {
-        builder.addTextBody(name, String.valueOf(value), ContentType.create(contentType).withCharset(StandardCharsets.UTF_8));
+        builder.addTextBody(name, String.valueOf(value), ContentType.parse(contentType));
         return this;
     }
 
     public MultipartBody part(String name, Double value, String contentType) {
-        builder.addTextBody(name, String.valueOf(value), ContentType.create(contentType).withCharset(StandardCharsets.UTF_8));
+        builder.addTextBody(name, String.valueOf(value), ContentType.parse(contentType));
         return this;
     }
 
@@ -97,7 +96,7 @@ public class MultipartBody extends BaseRequest implements Body {
     }
 
     public MultipartBody part(String name, File file, String contentType) {
-        builder.addBinaryBody(name, file, ContentType.create(contentType), file.getName());
+        builder.addBinaryBody(name, file, ContentType.parse(contentType), file.getName());
         return this;
     }
 
@@ -107,7 +106,7 @@ public class MultipartBody extends BaseRequest implements Body {
     }
 
     public MultipartBody part(String name, InputStream inputStream, String contentType, String fileName) {
-        builder.addBinaryBody(name, inputStream, ContentType.create(contentType), fileName);
+        builder.addBinaryBody(name, inputStream, ContentType.parse(contentType), fileName);
         return this;
     }
 
@@ -117,7 +116,7 @@ public class MultipartBody extends BaseRequest implements Body {
     }
 
     public MultipartBody part(String name, byte[] bytes, String contentType, String fileName) {
-        builder.addBinaryBody(name, bytes, ContentType.create(contentType), fileName);
+        builder.addBinaryBody(name, bytes, ContentType.parse(contentType), fileName);
         return this;
     }
 
@@ -128,6 +127,11 @@ public class MultipartBody extends BaseRequest implements Body {
 
     public HttpEntity getEntity() {
         return builder.build();
+    }
+
+    @Override
+    public boolean implicitContentType() {
+        return true;
     }
 
 }

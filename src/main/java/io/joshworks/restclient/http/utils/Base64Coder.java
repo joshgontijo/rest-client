@@ -16,6 +16,8 @@ package io.joshworks.restclient.http.utils;
 //Please contact the author if you need another license.
 //This module is provided "as is", without warranties of any kind.
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * A Base64 encoder/decoder.
  * <p>
@@ -67,7 +69,7 @@ public class Base64Coder {
      * @return A String containing the Base64 encoded data.
      */
     public static String encodeString(String s) {
-        return new String(encode(s.getBytes()));
+        return new String(encode(s.getBytes(StandardCharsets.UTF_8)));
     }
 
     /**
@@ -170,7 +172,7 @@ public class Base64Coder {
      * @throws IllegalArgumentException If the input is not valid Base64 encoded data.
      */
     public static String decodeString(String s) {
-        return new String(decode(s));
+        return new String(decode(s), StandardCharsets.UTF_8);
     }
 
     /**

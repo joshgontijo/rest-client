@@ -26,6 +26,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.joshworks.restclient.request;
 
 import io.joshworks.restclient.http.ClientRequest;
+import io.joshworks.restclient.http.MediaType;
 
 import java.util.Collection;
 import java.util.Map;
@@ -48,6 +49,11 @@ public class GetRequest extends HttpRequest {
 
     @Override
     public GetRequest contentType(String contentType) {
+        return (GetRequest) super.contentType(contentType);
+    }
+
+    @Override
+    public GetRequest contentType(MediaType contentType) {
         return (GetRequest) super.contentType(contentType);
     }
 

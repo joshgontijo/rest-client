@@ -79,7 +79,7 @@ public class JsonNode {
             return jsonArray.toString();
         }
         if (jsonObject == null)
-            return null;
+            return "";
         return jsonObject.toString();
     }
 }

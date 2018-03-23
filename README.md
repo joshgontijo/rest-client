@@ -1,7 +1,12 @@
 # RestClient - [Unirest](https://github.com/Mashape/unirest-java) fork
 
 
-[Unirest](http://unirest.io) is a set of lightweight HTTP libraries available in multiple languages, built and maintained by [Mashape](https://github.com/Mashape), who also maintain the open-source API Gateway [Kong](https://github.com/Mashape/kong). 
+[Unirest](http://unirest.io) is a set of lightweight HTTP libraries available in multiple languages, built and maintained 
+by [Mashape](https://github.com/Mashape), who also maintain the open-source API Gateway 
+[Kong](https://github.com/Mashape/kong).
+
+This fork is intended to fix the bugs left by the original authors, improve the API, and provide continuous support.
+Improvements, new ideas, and bug reports are very welcome. 
 
 
 
@@ -10,25 +15,24 @@
 
 ## Features
 
-Apart from the features provided by Unirest Java, this fork also provides:
+Apart from the features provided by the original Unirest Java, this fork also provides:
 
-* Bug fixes
+* Updated API to make use of Java 8
+* Major Bug fixes
 * Independent client configuration
 * Improved API
 * Updated async requests to use Java 8 CompletableFuture
 * Lazy response body parsing
-* Default JsonMapper using Gson
-* Single idle thread monitor for all clients
+* Default json mapper with Gson
 
 
 ### Maven
-
 
 ```xml
 <dependency>
     <groupId>io.joshworks.unirest</groupId>
     <artifactId>unirest-java</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
 </dependency>
 ```
 
@@ -39,7 +43,7 @@ This documentation aims to show the additional features and improvements from th
 
 
 ### Creating a new client with defaults
-The following example creates a new basic RestClient. At the moment, each client will have its own 
+The following example creates a new basic RestClient instance. At the moment, each client will have its own 
 HttpClient sync and async client.
 
 ```java
@@ -103,11 +107,10 @@ client.post("http://my-service.com/login")
 
 ```
 
-
 ### Serialization
-Before an `asObject(Class)` or a `.body(Object)` invokation, is necessary to provide a custom implementation of the `ObjectMapper` interface.
+Before using `asObject(Class)` or `.body(Object)`, is necessary to provide a custom implementation of the `ObjectMapper` interface.
 This should be done for each client.
-By default Gson is used as the default serializer, so there's no need to register any other unless you need custom configuration.
+By default Gson is used as the default serializer, so there's no need to register any other json mapper unless you want a custom configuration.
 Here's how to configure a new ObjectMapper:
 
 ```java
@@ -124,8 +127,31 @@ public class XmlMapper implements ObjectMapper {
     }
 }
 
+ObjectMappers.register(MediaType.APPLICATION_XML_TYPE, new XmlMapper());
 
-RestClient client = RestClient.builder().objectMapper(new XmlMapper()).build();
+
+HttpResponse<User> response = client.post("http://my-api.com/echo-xml")
+                .header("Accept", "application/xml")
+                .header("Content-Type", "application/xml")
+                .body(new User("John"))
+                .asObject(User.class);
+
+```
+
+### Client stats
+The API also exposes HttpClient's PoolStats, so you can inspect the usage of each client.
+
+```java
+   
+   ClientStats stats = client.stats();
+   int leased = stats.sync.getLeased();
+   int available = stats.sync.getAvailable();
+   int max = stats.sync.getMax();
+   int pending = stats.sync.getPending();
+
+   //All clients
+   Map<String, ClientStats> allStats = ClientContainer.stats();
+   //...
 
 ```
 

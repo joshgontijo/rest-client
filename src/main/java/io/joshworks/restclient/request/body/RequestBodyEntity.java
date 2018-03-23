@@ -60,4 +60,9 @@ public class RequestBodyEntity extends BaseRequest implements Body {
         return new StringEntity(body.toString(), Constants.UTF_8);
     }
 
+    @Override
+    public boolean implicitContentType() {
+        return false;
+    }
+
 }

@@ -3,7 +3,6 @@ package io.joshworks.restclient.http;
 import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
-import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
@@ -26,7 +25,6 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -41,25 +39,22 @@ public class ClientRequest {
     private final CloseableHttpClient syncClient;
     private final CloseableHttpAsyncClient asyncClient;
     private final Map<String, Object> defaultHeaders;
-    public final ObjectMapper objectMapper;
     public final String url;
     public final HttpMethod httpMethod;
 
-    ClientRequest(HttpMethod httpMethod, String url, CloseableHttpClient syncClient, CloseableHttpAsyncClient asyncClient, Map<String, Object> defaultHeaders, ObjectMapper objectMapper) {
+    ClientRequest(HttpMethod httpMethod, String url, CloseableHttpClient syncClient, CloseableHttpAsyncClient asyncClient, Map<String, Object> defaultHeaders) {
         this.url = url;
         this.httpMethod = httpMethod;
         this.syncClient = syncClient;
         this.asyncClient = asyncClient;
         this.defaultHeaders = defaultHeaders;
-        this.objectMapper = objectMapper;
     }
 
-    private static final String USER_AGENT = "rest-client/0.2.2";
+    private static final String USER_AGENT = "rest-client/1.6.0";
 
-    private static <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(
+    private <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(
             final Class<T> responseClass,
-            final Callback<T> callback,
-            final ObjectMapper objectMapper) {
+            final Callback<T> callback) {
         if (callback == null)
             return null;
 
@@ -70,11 +65,11 @@ public class ClientRequest {
             }
 
             public void completed(org.apache.http.HttpResponse arg0) {
-                callback.completed(new HttpResponse<>(arg0, responseClass, objectMapper));
+                callback.completed(new HttpResponse<>(arg0, responseClass));
             }
 
             public void failed(Exception arg0) {
-                callback.failed(new RestClientException(arg0));
+                callback.failed(arg0);
             }
 
         };
@@ -96,7 +91,7 @@ public class ClientRequest {
             }
 
             @Override
-            public void failed(RestClientException e) {
+            public void failed(Exception e) {
                 completableFuture.completeExceptionally(e);
             }
 
@@ -104,7 +99,7 @@ public class ClientRequest {
             public void cancelled() {
                 //do nothing
             }
-        }, objectMapper));
+        }));
 
         return completableFuture;
     }
@@ -120,7 +115,7 @@ public class ClientRequest {
             asyncClient.start();
         }
 
-        final Future<org.apache.http.HttpResponse> future = asyncClient.execute(requestObj, prepareCallback(responseClass, callback, objectMapper));
+        final Future<org.apache.http.HttpResponse> future = asyncClient.execute(requestObj, prepareCallback(responseClass, callback));
 
         return new Future<HttpResponse<T>>() {
 
@@ -146,42 +141,37 @@ public class ClientRequest {
 
             private HttpResponse<T> getResponse() throws ExecutionException, InterruptedException {
                 org.apache.http.HttpResponse httpResponse = future.get();
-                return new HttpResponse<>(httpResponse, responseClass, objectMapper);
+                return new HttpResponse<>(httpResponse, responseClass);
             }
 
             private HttpResponse<T> getResponse(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
                 org.apache.http.HttpResponse httpResponse = future.get(timeout, unit);
-                return new HttpResponse<>(httpResponse, responseClass, objectMapper);
+                return new HttpResponse<>(httpResponse, responseClass);
             }
         };
     }
 
     public <T> HttpResponse<T> request(final HttpRequest request, final Class<T> responseClass) {
-        return this.doRequest(request, responseClass);
-    }
-
-    private <T> HttpResponse<T> doRequest(HttpRequest request, Class<T> responseClass) {
         HttpRequestBase requestObj = prepareRequest(request, false);
         org.apache.http.HttpResponse response;
         try {
-
             response = syncClient.execute(requestObj);
-            HttpResponse<T> httpResponse = new HttpResponse<>(response, responseClass, objectMapper);
-            requestObj.releaseConnection();
-            return httpResponse;
+            return HttpResponse.create(requestObj, response, responseClass);
         } catch (Exception e) {
             throw new RestClientException(e);
-        } finally {
-            requestObj.releaseConnection();
         }
-
     }
-
 
     private HttpRequestBase prepareRequest(HttpRequest request, boolean async) {
 
+
+
         if (defaultHeaders != null) {
             for (Map.Entry<String, Object> entry : defaultHeaders.entrySet()) {
+                //Do not set content-type for multipart and urlencoded
+                if(entry.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE) && request.getBody().implicitContentType()) {
+                    continue;
+                }
                 request.header(entry.getKey(), String.valueOf(entry.getValue()));
             }
         }
@@ -192,7 +182,6 @@ public class ClientRequest {
         if (!request.getHeaders().containsKey(HttpHeaders.ACCEPT_ENCODING)) {
             request.header(HttpHeaders.ACCEPT_ENCODING, Constants.GZIP);
         }
-
 
         String urlToRequest;
         try {
@@ -236,8 +225,7 @@ public class ClientRequest {
                 break;
         }
 
-        Set<Map.Entry<String, List<String>>> entrySet = request.getHeaders().entrySet();
-        for (Map.Entry<String, List<String>> entry : entrySet) {
+        for (Map.Entry<String, List<String>> entry : request.getHeaders().entrySet()) {
             List<String> values = entry.getValue();
             if (values != null) {
                 for (String value : values) {
