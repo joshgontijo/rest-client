@@ -179,9 +179,6 @@ public class ClientRequest {
         if (!request.getHeaders().containsKey(HttpHeaders.USER_AGENT)) {
             request.header(HttpHeaders.USER_AGENT, USER_AGENT);
         }
-        if (!request.getHeaders().containsKey(HttpHeaders.ACCEPT_ENCODING)) {
-            request.header(HttpHeaders.ACCEPT_ENCODING, Constants.GZIP);
-        }
 
         String urlToRequest;
         try {
