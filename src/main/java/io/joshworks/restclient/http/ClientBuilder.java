@@ -38,6 +38,7 @@ public class ClientBuilder {
     private List<HttpRequestInterceptor> requestInterceptors = new LinkedList<>();
     private List<HttpResponseInterceptor> responseInterceptor = new LinkedList<>();
     private final CookieStore cookieStore = new BasicCookieStore();
+    private boolean compressionEnabled = true;
 
     ClientBuilder() {
 
@@ -83,6 +84,10 @@ public class ClientBuilder {
                 .setDefaultCookieStore(cookieStore)
                 .setDefaultCredentialsProvider(credentialsProvider)
                 .setConnectionManager(manager);
+
+        if(!compressionEnabled) {
+            syncBuilder.disableContentCompression();
+        }
 
         return addInterceptors(syncBuilder).build();
     }
@@ -154,6 +159,11 @@ public class ClientBuilder {
 
     public ClientBuilder proxy(HttpHost proxy) {
         configBuilder.setProxy(proxy);
+        return this;
+    }
+
+    public ClientBuilder disableContentCompression() {
+        compressionEnabled = false;
         return this;
     }
 

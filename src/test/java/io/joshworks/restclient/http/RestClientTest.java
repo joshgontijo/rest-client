@@ -375,7 +375,7 @@ public class RestClientTest {
                     }
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -523,7 +523,7 @@ public class RestClientTest {
 
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -577,7 +577,7 @@ public class RestClientTest {
 
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -627,7 +627,7 @@ public class RestClientTest {
 
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -892,7 +892,7 @@ public class RestClientTest {
                     }
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -929,7 +929,7 @@ public class RestClientTest {
                     }
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -1145,9 +1145,6 @@ public class RestClientTest {
             InputStream body = response.getBody();
             String received = TestUtils.toString(body);
             assertEquals(sourceString, received);
-
-            ClientStats stats = client.stats();
-            assertEquals(1, stats.sync.getLeased());
         }
         ClientStats stats = client.stats();
         assertEquals(0, stats.sync.getLeased());
@@ -1230,6 +1227,28 @@ public class RestClientTest {
             assertEquals(key + "=" + value, cookies.get(0));
         }
 
+    }
+
+    @Test
+    public void compressionDisabled() {
+        try (RestClient noCompressionClient = RestClient.builder().disableContentCompression().build()) {
+            HttpResponse<JsonNode> response = noCompressionClient.get(BASE_URL + "/echoHeaders").asJson();
+            assertFalse(response.getBody().getObject().has("Accept-Encoding"));
+        }
+    }
+
+    @Test
+    public void compressionEnabledByDefault() {
+        try (RestClient noCompressionClient = RestClient.builder().build()) {
+            HttpResponse<JsonNode> response = noCompressionClient.get(BASE_URL + "/echoHeaders").asJson();
+            assertTrue(response.getBody().getObject().has("Accept-Encoding"));
+            assertEquals(1, response.getBody().getObject().getJSONArray("Accept-Encoding").length()); //single entry
+
+            String acceptEncodings = response.getBody().getObject().getJSONArray("Accept-Encoding").getString(0);
+
+            assertTrue(acceptEncodings.contains("gzip"));
+            assertTrue(acceptEncodings.contains("deflate"));
+        }
     }
 
 }
