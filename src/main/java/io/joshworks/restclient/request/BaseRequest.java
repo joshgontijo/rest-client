@@ -29,7 +29,6 @@ import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.HttpResponse;
 import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.async.Callback;
-import io.joshworks.restclient.http.exceptions.RestClientException;
 
 import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
@@ -48,7 +47,7 @@ public abstract class BaseRequest {
         return this.httpRequest;
     }
 
-    public HttpResponse<String> asString() throws RestClientException {
+    public HttpResponse<String> asString()  {
         return clientRequest.request(httpRequest, String.class);
     }
 
@@ -60,7 +59,7 @@ public abstract class BaseRequest {
         clientRequest.requestAsync(httpRequest, String.class, callback);
     }
 
-    public HttpResponse<JsonNode> asJson() throws RestClientException {
+    public HttpResponse<JsonNode> asJson()  {
         return clientRequest.request(httpRequest, JsonNode.class);
     }
 
@@ -72,7 +71,7 @@ public abstract class BaseRequest {
         return clientRequest.requestAsync(httpRequest, JsonNode.class, callback);
     }
 
-    public <T> HttpResponse<T> asObject(Class<T> responseClass) throws RestClientException {
+    public <T> HttpResponse<T> asObject(Class<T> responseClass)  {
         return clientRequest.request(httpRequest, responseClass);
     }
 
@@ -84,7 +83,13 @@ public abstract class BaseRequest {
         return clientRequest.requestAsync(httpRequest,responseClass, callback);
     }
 
-    public HttpResponse<InputStream> asBinary() throws RestClientException {
+    /**
+     * Returns the raw InputStream from the response. The stream must be closed afterwards.
+     * 
+     * @return The InputStream of the response
+     * @
+     */
+    public HttpResponse<InputStream> asBinary() {
         return clientRequest.request(httpRequest, InputStream.class);
     }
 
