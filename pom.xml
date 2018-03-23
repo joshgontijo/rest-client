@@ -22,7 +22,7 @@
     </licenses>
 
     <name>Unirest java</name>
-    <description>Restful Java client based on Unirest</description>
+    <description>Rest Java client based on Unirest</description>
 
     <url>https://github.com/josueeduardo/rest-client</url>
     <scm>
@@ -33,7 +33,7 @@
     <developers>
         <developer>
             <name>Josue Gontijo</name>
-            <email>josue dot egontijo at gmail dot com</email>
+            <email>josue.eduardo206@gmail.com</email>
         </developer>
     </developers>
 
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>io.joshworks.snappy</groupId>
             <artifactId>snappy</artifactId>
-            <version>0.3.0-SNAPSHOT</version>
+            <version>0.3.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
