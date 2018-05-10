@@ -16,6 +16,11 @@ public class Unirest {
         }
         return client;
     }
+    
+    public synchronized static void setClient(RestClient client) {
+        close();
+        Unirest.client = client;
+    }
 
     public synchronized static void close() {
         if (client != null) {
