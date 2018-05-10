@@ -29,6 +29,7 @@ import io.joshworks.restclient.helper.TestData;
 import io.joshworks.restclient.helper.TestServer;
 import io.joshworks.restclient.helper.TestUtils;
 import io.joshworks.restclient.http.async.Callback;
+import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.http.mapper.JsonMapper;
 import io.joshworks.restclient.http.mapper.ObjectMappers;
 import io.joshworks.restclient.http.utils.ClientStats;
@@ -1233,7 +1234,7 @@ public class RestClientTest {
         }
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = RestClientException.class)
     public void withNoHttpBuilder() {
         try(RestClient client = RestClient.with(null)) {
             client.get(BASE_URL + "/hello").asString();
@@ -1249,7 +1250,7 @@ public class RestClientTest {
         }
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = RestClientException.class)
     public void withNoHttpAsyncBuilder() {
         try(RestClient client = RestClient.with(null)) {
             client.get(BASE_URL + "/hello").asStringAsync();

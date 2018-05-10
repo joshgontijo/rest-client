@@ -14,7 +14,7 @@ public class ObjectMappers {
     }
 
     public static void register(MediaType mediaType, ObjectMapper mapper) {
-        Objects.requireNonNull(mediaType, "MediaType cannot be null");
+        Objects.requireNonNull(mediaType, "MediaType must be provided");
         Objects.requireNonNull(mapper, "ObjectMapper must provided");
         mappers.put(mediaType, mapper);
     }

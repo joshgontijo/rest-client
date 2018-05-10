@@ -25,6 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.http;
 
+import io.joshworks.restclient.http.exceptions.JsonParsingException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -48,7 +49,7 @@ public class JsonNode {
                     jsonArray = new JSONArray(json);
                     array = true;
                 } catch (JSONException e1) {
-                    throw new RuntimeException(e1);
+                    throw new JsonParsingException("Failed to parse " + json, e1);
                 }
             }
         }

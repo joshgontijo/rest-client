@@ -80,7 +80,7 @@ public class ClientRequest {
         HttpUriRequest requestObj = prepareRequest(request, true);
 
         if(asyncClient == null) {
-            throw new IllegalStateException("Async client not configured");
+            throw new RestClientException("Async client not configured");
         }
 
         if (!asyncClient.isRunning()) {
@@ -116,7 +116,7 @@ public class ClientRequest {
         HttpUriRequest requestObj = prepareRequest(request, true);
 
         if(asyncClient == null) {
-            throw new IllegalStateException("Async client not configured");
+            throw new RestClientException("Async client not configured");
         }
 
         if (!asyncClient.isRunning()) {
@@ -161,7 +161,7 @@ public class ClientRequest {
 
     public <T> HttpResponse<T> request(final HttpRequest request, final Class<T> responseClass) {
         if(syncClient == null) {
-            throw new IllegalStateException("Sync client not configured");
+            throw new RestClientException("Sync client not configured");
         }
         HttpRequestBase requestObj = prepareRequest(request, false);
         org.apache.http.HttpResponse response;
@@ -206,7 +206,7 @@ public class ClientRequest {
                 urlToRequest = urlToRequest.substring(0, urlToRequest.length() - 1);
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RestClientException(e);
         }
 
         HttpRequestBase reqObj = null;
