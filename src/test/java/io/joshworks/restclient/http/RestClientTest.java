@@ -38,6 +38,8 @@ import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
@@ -1229,7 +1231,44 @@ public class RestClientTest {
             assertEquals(1, cookies.size());
             assertEquals(key + "=" + value, cookies.get(0));
         }
-
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void withNoHttpBuilder() {
+        try(RestClient client = RestClient.with(null)) {
+            client.get(BASE_URL + "/hello").asString();
+        }
+    }
+
+    @Test
+    public void withHttpBuilder() {
+        try(RestClient client = RestClient.with(HttpClientBuilder.create())) {
+            HttpResponse<String> response = client.get(BASE_URL + "/hello").asString();
+            assertEquals(200, response.getStatus());
+            assertNotNull(response.getBody());
+        }
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void withNoHttpAsyncBuilder() {
+        try(RestClient client = RestClient.with(null)) {
+            client.get(BASE_URL + "/hello").asStringAsync();
+        }
+    }
+
+    @Test
+    public void withHttpAsyncBuilder() throws InterruptedException {
+        try(RestClient client = RestClient.with(null, HttpAsyncClientBuilder.create())) {
+            CountDownLatch latch = new CountDownLatch(1);
+            client.get(BASE_URL + "/hello").asStringAsync().thenAccept(response -> {
+                latch.countDown();
+                assertEquals(200, response.getStatus());
+            });
+
+            if(!latch.await(5, TimeUnit.SECONDS)) {
+                fail("Countdown timeout exceeded");
+            }
+
+        }
+    }
 }

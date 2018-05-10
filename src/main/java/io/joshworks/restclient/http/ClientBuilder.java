@@ -13,12 +13,15 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 
+import javax.net.ssl.SSLContext;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,13 +34,14 @@ public class ClientBuilder {
     private int maxTotal = 20;
     private String baseUrl = "";
 
-    private Function<String, String> urlTransformer = (url) -> url;
+    private Function<String, String> urlTransformer = url -> url;
     private Map<String, Object> defaultHeaders = new HashMap<>();
 
     private RequestConfig.Builder configBuilder = RequestConfig.custom();
     private List<HttpRequestInterceptor> requestInterceptors = new LinkedList<>();
     private List<HttpResponseInterceptor> responseInterceptor = new LinkedList<>();
     private final CookieStore cookieStore = new BasicCookieStore();
+    private SSLContext sslContext;
 
     ClientBuilder() {
 
@@ -71,6 +75,7 @@ public class ClientBuilder {
         HttpAsyncClientBuilder asyncBuilder = HttpAsyncClientBuilder.create()
                 .setDefaultRequestConfig(clientConfig)
                 .setDefaultCookieStore(cookieStore)
+                .setSSLContext(sslContext)
                 .setConnectionManager(manager);
 
         return addInterceptors(asyncBuilder).build();
@@ -81,8 +86,13 @@ public class ClientBuilder {
         HttpClientBuilder syncBuilder = HttpClientBuilder.create()
                 .setDefaultRequestConfig(clientConfig)
                 .setDefaultCookieStore(cookieStore)
+                .setSSLContext(sslContext)
                 .setDefaultCredentialsProvider(credentialsProvider)
                 .setConnectionManager(manager);
+
+        if(sslContext != null) {
+            syncBuilder.setSSLContext(sslContext);
+        }
 
         return addInterceptors(syncBuilder).build();
     }
@@ -119,6 +129,11 @@ public class ClientBuilder {
 
     public ClientBuilder followRedirect(boolean followRedirect) {
         configBuilder.setRedirectsEnabled(followRedirect);
+        return this;
+    }
+
+    public ClientBuilder sslContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
         return this;
     }
 

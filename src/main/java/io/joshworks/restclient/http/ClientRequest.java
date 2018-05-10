@@ -79,6 +79,10 @@ public class ClientRequest {
 
         HttpUriRequest requestObj = prepareRequest(request, true);
 
+        if(asyncClient == null) {
+            throw new IllegalStateException("Async client not configured");
+        }
+
         if (!asyncClient.isRunning()) {
             asyncClient.start();
         }
@@ -110,6 +114,10 @@ public class ClientRequest {
             Callback<T> callback) {
 
         HttpUriRequest requestObj = prepareRequest(request, true);
+
+        if(asyncClient == null) {
+            throw new IllegalStateException("Async client not configured");
+        }
 
         if (!asyncClient.isRunning()) {
             asyncClient.start();
@@ -152,6 +160,9 @@ public class ClientRequest {
     }
 
     public <T> HttpResponse<T> request(final HttpRequest request, final Class<T> responseClass) {
+        if(syncClient == null) {
+            throw new IllegalStateException("Sync client not configured");
+        }
         HttpRequestBase requestObj = prepareRequest(request, false);
         org.apache.http.HttpResponse response;
         try {
@@ -163,8 +174,6 @@ public class ClientRequest {
     }
 
     private HttpRequestBase prepareRequest(HttpRequest request, boolean async) {
-
-
 
         if (defaultHeaders != null) {
             for (Map.Entry<String, Object> entry : defaultHeaders.entrySet()) {

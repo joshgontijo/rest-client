@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
  */
 public class ClientContainer {
 
-    private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClientContainer.class);
     private static final Map<String, RestClient> clients = new ConcurrentHashMap<>();
 
     //Global monitor
@@ -24,12 +24,12 @@ public class ClientContainer {
     }
 
     static void addClient(RestClient client) {
-        logger.info("New rest client created, id: " + client.id);
+        logger.info("New rest client created, id: {}", client.id);
         clients.put(client.id, client);
     }
 
     static void removeClient(RestClient client) {
-        logger.info("Rest client removed, id: " + client.id);
+        logger.info("Rest client removed, id: {}", client.id);
         clients.remove(client.id);
     }
 
@@ -41,9 +41,9 @@ public class ClientContainer {
         return clients.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, d -> d.getValue().stats()));
     }
 
-    public synchronized static void shutdown() {
+    public static synchronized void shutdown() {
         for (Map.Entry<String, RestClient> clientEntry : clients.entrySet()) {
-            logger.info("Shutting down rest client, id: " + clientEntry.getKey());
+            logger.info("Shutting down rest client, id: {}", clientEntry.getKey());
             try {
                 clientEntry.getValue().close();
             } catch (Exception e) {

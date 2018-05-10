@@ -8,7 +8,11 @@ import io.joshworks.restclient.request.HttpRequestWithBody;
  */
 public class Unirest {
 
-    private static RestClient client;
+    private static volatile RestClient client;
+
+    private Unirest() {
+
+    }
 
     private synchronized static RestClient getClient() {
         if (client == null) {

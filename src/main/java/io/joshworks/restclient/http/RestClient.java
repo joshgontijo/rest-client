@@ -29,10 +29,15 @@ import io.joshworks.restclient.http.utils.ClientStats;
 import io.joshworks.restclient.request.GetRequest;
 import io.joshworks.restclient.request.HttpRequestWithBody;
 import org.apache.http.client.CookieStore;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
+import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.nio.reactor.IOReactorException;
 
 import java.io.Closeable;
 import java.util.HashMap;
@@ -74,11 +79,52 @@ public class RestClient implements Closeable {
         this.syncClient = syncClient;
         this.cookieStore = cookieStore;
         this.defaultHeaders.putAll(defaultHeaders);
-        this.id = UUID.randomUUID().toString().substring(0, 8);
+        this.id = newUUID();
+    }
+
+    private RestClient(HttpClientBuilder clientBuilder, HttpAsyncClientBuilder asyncClientBuilder) {
+        this.id = newUUID();
+        this.baseUrl = "";
+        this.urlTransformer = url -> url;
+        this.cookieStore = new BasicCookieStore();
+
+        if (clientBuilder != null) {
+            this.syncConnectionManager = new PoolingHttpClientConnectionManager();
+            clientBuilder.setConnectionManager(syncConnectionManager);
+            clientBuilder.setDefaultCookieStore(cookieStore);
+            this.syncClient = clientBuilder.build();
+        } else {
+            this.syncClient = null;
+            this.syncConnectionManager = null;
+        }
+
+        if (asyncClientBuilder != null) {
+            try {
+                PoolingNHttpClientConnectionManager asyncConnManager = new PoolingNHttpClientConnectionManager(new DefaultConnectingIOReactor());
+                asyncClientBuilder.setConnectionManager(asyncConnManager);
+                asyncClientBuilder.setDefaultCookieStore(cookieStore);
+                this.asyncClient = asyncClientBuilder.build();
+                this.asyncConnectionManager = asyncConnManager;
+            } catch (IOReactorException e) {
+                throw new IllegalStateException("Failed to Async IO reactor", e);
+
+            }
+        } else {
+            this.asyncClient = null;
+            this.asyncConnectionManager = null;
+        }
     }
 
     public static ClientBuilder builder() {
         return new ClientBuilder();
+    }
+
+    public static RestClient with(HttpClientBuilder clientBuilder) {
+        return with(clientBuilder, null);
+    }
+
+    public static RestClient with(HttpClientBuilder clientBuilder, HttpAsyncClientBuilder asyncClientBuilder) {
+        return new RestClient(clientBuilder, asyncClientBuilder);
     }
 
     public GetRequest get(String url) {
@@ -122,11 +168,14 @@ public class RestClient implements Closeable {
     }
 
     void closeIdleConnections() {
-        asyncConnectionManager.closeExpiredConnections();
-        asyncConnectionManager.closeIdleConnections(IDLE_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
-
-        syncConnectionManager.closeExpiredConnections();
-        syncConnectionManager.closeIdleConnections(IDLE_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+        if (asyncConnectionManager != null) {
+            asyncConnectionManager.closeExpiredConnections();
+            asyncConnectionManager.closeIdleConnections(IDLE_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+        }
+        if (syncConnectionManager != null) {
+            syncConnectionManager.closeExpiredConnections();
+            syncConnectionManager.closeIdleConnections(IDLE_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+        }
     }
 
     /**
@@ -135,13 +184,11 @@ public class RestClient implements Closeable {
     @Override
     public void close() {
         try {
-            // Closing the Sync HTTP client
             if (syncClient != null) {
                 syncClient.close();
                 syncConnectionManager.close();
             }
 
-            // Closing the Async HTTP client (if running)
             if (asyncClient != null && asyncClient.isRunning()) {
                 asyncClient.close();
             }
@@ -150,5 +197,9 @@ public class RestClient implements Closeable {
         }
 
         ClientContainer.removeClient(this);
+    }
+
+    private String newUUID() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 }
