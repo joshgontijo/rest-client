@@ -95,7 +95,7 @@ public class HttpResponse<T> implements Closeable {
     }
 
     private InputStream getEntity(HttpEntity responseEntity) throws IOException {
-        if (ResponseUtils.isGzipped(responseEntity.getContentEncoding())) {
+        if (ResponseUtils.isGzipped(responseEntity.getContentEncoding()) && responseEntity.getContentLength() > 0) {
             return new GZIPInputStream(responseEntity.getContent());
         }
         return responseEntity.getContent();
