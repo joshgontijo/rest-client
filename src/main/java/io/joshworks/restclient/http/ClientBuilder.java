@@ -13,7 +13,6 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
@@ -87,6 +86,7 @@ public class ClientBuilder {
                 .setDefaultRequestConfig(clientConfig)
                 .setDefaultCookieStore(cookieStore)
                 .setSSLContext(sslContext)
+                .setRedirectStrategy(new LaxRedirectStrategy())
                 .setDefaultCredentialsProvider(credentialsProvider)
                 .setConnectionManager(manager);
 
