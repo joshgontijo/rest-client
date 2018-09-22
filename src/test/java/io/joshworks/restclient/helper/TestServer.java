@@ -77,6 +77,7 @@ public class TestServer {
             exchange.send(echoResponse, "json");
         });
 
+        post("/echoArray", exchange -> exchange.send(exchange.body().asString()));
         post("/echoJson", exchange -> exchange.send(exchange.body().asObject(TestData.class)));
         put("/echoJson", exchange -> exchange.send(exchange.body().asObject(TestData.class)));
         post("/echoPlain", exchange -> exchange.send(exchange.body().asString()), produces("txt"));

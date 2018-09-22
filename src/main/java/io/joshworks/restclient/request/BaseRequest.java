@@ -25,13 +25,16 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request;
 
+import com.google.gson.reflect.TypeToken;
 import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.HttpResponse;
 import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.async.Callback;
-import io.joshworks.restclient.http.exceptions.RestClientException;
 
 import java.io.InputStream;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
@@ -48,7 +51,7 @@ public abstract class BaseRequest {
         return this.httpRequest;
     }
 
-    public HttpResponse<String> asString() throws RestClientException {
+    public HttpResponse<String> asString() {
         return clientRequest.request(httpRequest, String.class);
     }
 
@@ -60,7 +63,7 @@ public abstract class BaseRequest {
         clientRequest.requestAsync(httpRequest, String.class, callback);
     }
 
-    public HttpResponse<JsonNode> asJson() throws RestClientException {
+    public HttpResponse<JsonNode> asJson() {
         return clientRequest.request(httpRequest, JsonNode.class);
     }
 
@@ -72,8 +75,23 @@ public abstract class BaseRequest {
         return clientRequest.requestAsync(httpRequest, JsonNode.class, callback);
     }
 
-    public <T> HttpResponse<T> asObject(Class<T> responseClass) throws RestClientException {
+    public <T> HttpResponse<T> asObject(Class<T> responseClass) {
         return clientRequest.request(httpRequest, responseClass);
+    }
+
+    public <T> HttpResponse<Set<T>> asSetOf(Class<T> responseClass) {
+        Class<? super Set<T>> rawType = new TypeToken<Set<T>>() {}.getRawType();
+        return (HttpResponse<Set<T>>) clientRequest.request(httpRequest, rawType);
+    }
+
+    public <T> HttpResponse<List<T>> asListOf(Class<T> responseClass) {
+        Class<? super List<T>> rawType = new TypeToken<List<T>>() {}.getRawType();
+        return (HttpResponse<List<T>>) clientRequest.request(httpRequest, rawType);
+    }
+
+    public <T> HttpResponse<Queue<T>> asQueueOf(Class<T> responseClass) {
+        Class<? super Queue<T>> rawType = new TypeToken<Queue<T>>() {}.getRawType();
+        return (HttpResponse<Queue<T>>) clientRequest.request(httpRequest, rawType);
     }
 
     public <T> CompletableFuture<HttpResponse<T>> asObjectAsync(Class<T> responseClass) {
@@ -81,10 +99,10 @@ public abstract class BaseRequest {
     }
 
     public <T> Future<HttpResponse<T>> asObjectAsync(Class<T> responseClass, Callback<T> callback) {
-        return clientRequest.requestAsync(httpRequest,responseClass, callback);
+        return clientRequest.requestAsync(httpRequest, responseClass, callback);
     }
 
-    public HttpResponse<InputStream> asBinary() throws RestClientException {
+    public HttpResponse<InputStream> asBinary() {
         return clientRequest.request(httpRequest, InputStream.class);
     }
 

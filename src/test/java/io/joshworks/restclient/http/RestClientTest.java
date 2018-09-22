@@ -57,7 +57,9 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -998,6 +1000,37 @@ public class RestClientTest {
         assertEquals("Tom", names.getString(1));
     }
 
+    @Test
+    public void asSetOf() {
+
+        Set<String> values = new HashSet<>();
+        values.add("a");
+        values.add("b");
+
+        HttpResponse<Set<String>> response = client.post(BASE_URL + "/echoArray")
+                .contentType(MediaType.APPLICATION_JSON_TYPE)
+                .body(values)
+                .asSetOf(String.class);
+
+        assertEquals(200, response.getStatus());
+        assertEquals(values.size(), response.getBody().size());
+    }
+
+    @Test
+    public void asListOf() {
+
+        List<String> values = new ArrayList<>();
+        values.add("a");
+        values.add("b");
+
+        HttpResponse<List<String>> response = client.post(BASE_URL + "/echoArray")
+                .contentType(MediaType.APPLICATION_JSON_TYPE)
+                .body(values)
+                .asListOf(String.class);
+
+        assertEquals(200, response.getStatus());
+        assertEquals(values.size(), response.getBody().size());
+    }
 
     @Test
     public void formArrayValue() {
