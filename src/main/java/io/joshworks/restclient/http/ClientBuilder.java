@@ -31,6 +31,7 @@ public class ClientBuilder {
 
     private CredentialsProvider credentialsProvider;
     private int maxTotal = 20;
+    private int maxRoute = 2;
     private String baseUrl = "";
 
     private Function<String, String> urlTransformer = url -> url;
@@ -53,12 +54,13 @@ public class ClientBuilder {
 
             PoolingHttpClientConnectionManager syncConnectionManager = new PoolingHttpClientConnectionManager();
             syncConnectionManager.setMaxTotal(maxTotal);
+            syncConnectionManager.setDefaultMaxPerRoute(maxRoute);
             CloseableHttpClient syncClient = createSyncClient(clientConfig, syncConnectionManager);
 
             DefaultConnectingIOReactor ioReactor = new DefaultConnectingIOReactor();
             PoolingNHttpClientConnectionManager asyncConnectionManager = new PoolingNHttpClientConnectionManager(ioReactor);
             asyncConnectionManager.setMaxTotal(maxTotal);
-
+            asyncConnectionManager.setDefaultMaxPerRoute(maxRoute);
             CloseableHttpAsyncClient asyncClient = createAsyncClient(clientConfig, asyncConnectionManager);
 
             RestClient restClient = new RestClient(baseUrl, defaultHeaders, urlTransformer, asyncConnectionManager, syncConnectionManager, asyncClient, syncClient, cookieStore);
@@ -196,6 +198,16 @@ public class ClientBuilder {
      */
     public ClientBuilder concurrency(int maxTotal) {
         this.maxTotal = maxTotal;
+        return this;
+    }
+
+    /**
+     * Set the concurrency levels per host
+     *
+     * @param maxRoute Defines the connection limit for a connection pool per host. Default is 2.
+     */
+    public ClientBuilder routeConcurrency(int maxRoute){
+        this.maxRoute = maxRoute;
         return this;
     }
 
