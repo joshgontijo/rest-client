@@ -7,7 +7,7 @@ public class Headers extends HashMap<String, List<String>> {
 
     public String getFirst(Object key) {
         List<String> list = get(key);
-        if (list != null && list.size() > 0) {
+        if (list != null && !list.isEmpty()) {
             return list.get(0);
         }
         return null;

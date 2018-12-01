@@ -42,9 +42,12 @@ import org.apache.http.nio.reactor.IOReactorException;
 import java.io.Closeable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+
+import static io.joshworks.restclient.http.utils.Constants.PATH_SEPARATOR;
 
 public class RestClient implements Closeable {
 
@@ -127,31 +130,31 @@ public class RestClient implements Closeable {
         return new RestClient(clientBuilder, asyncClientBuilder);
     }
 
-    public GetRequest get(String url) {
+    public GetRequest get(String... url) {
         return new GetRequest(new ClientRequest(HttpMethod.GET, resolveUrl(url), syncClient, asyncClient, defaultHeaders));
     }
 
-    public GetRequest head(String url) {
+    public GetRequest head(String... url) {
         return new GetRequest(new ClientRequest(HttpMethod.HEAD, resolveUrl(url), syncClient, asyncClient, defaultHeaders));
     }
 
-    public HttpRequestWithBody options(String url) {
+    public HttpRequestWithBody options(String... url) {
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.OPTIONS, resolveUrl(url), syncClient, asyncClient, defaultHeaders));
     }
 
-    public HttpRequestWithBody post(String url) {
+    public HttpRequestWithBody post(String... url) {
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.POST, resolveUrl(url), syncClient, asyncClient, defaultHeaders));
     }
 
-    public HttpRequestWithBody delete(String url) {
+    public HttpRequestWithBody delete(String... url) {
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.DELETE, resolveUrl(url), syncClient, asyncClient, defaultHeaders));
     }
 
-    public HttpRequestWithBody patch(String url) {
+    public HttpRequestWithBody patch(String... url) {
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.PATCH, resolveUrl(url), syncClient, asyncClient, defaultHeaders));
     }
 
-    public HttpRequestWithBody put(String url) {
+    public HttpRequestWithBody put(String... url) {
         return new HttpRequestWithBody(new ClientRequest(HttpMethod.PUT, resolveUrl(url), syncClient, asyncClient, defaultHeaders));
     }
 
@@ -163,8 +166,22 @@ public class RestClient implements Closeable {
         return new ClientStats(syncConnectionManager.getTotalStats(), asyncConnectionManager.getTotalStats());
     }
 
-    private String resolveUrl(String url) {
-        return urlTransformer.apply(baseUrl) + url;
+    String resolveUrl(String... paths) {
+        StringJoiner pathJoiner = new StringJoiner(PATH_SEPARATOR);
+        for (String path : paths) {
+            if(path != null && !path.trim().isEmpty()) {
+                path = path.startsWith(PATH_SEPARATOR) ? path.substring(1) : path;
+                path = path.endsWith(PATH_SEPARATOR) ? path.substring(0, path.length() - 1) : path;
+                pathJoiner.add(path);
+            }
+        }
+
+        if(baseUrl == null || baseUrl.trim().isEmpty()) {
+            return pathJoiner.toString();
+        }
+        String base = urlTransformer.apply(baseUrl);
+        base = !base.endsWith(PATH_SEPARATOR) ? base + PATH_SEPARATOR : base;
+        return base + pathJoiner.toString();
     }
 
     void closeIdleConnections() {

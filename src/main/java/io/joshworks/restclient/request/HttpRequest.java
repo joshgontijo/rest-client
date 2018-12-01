@@ -82,6 +82,18 @@ public class HttpRequest extends BaseRequest {
         return this;
     }
 
+    public HttpRequest header(String name, Long value) {
+        return header(name, value == null ? null : String.valueOf(value));
+    }
+
+    public HttpRequest header(String name, Integer value) {
+        return header(name, value == null ? null : String.valueOf(value));
+    }
+
+    public HttpRequest header(String name, Double value) {
+        return header(name, value == null ? null : String.valueOf(value));
+    }
+
     public HttpRequest header(String name, String value) {
         List<String> list = this.headers.get(name.trim());
         if (list == null) {
@@ -182,7 +194,7 @@ public class HttpRequest extends BaseRequest {
 
     protected MediaType getContentType() {
         List<String> types = this.headers.get(HttpHeaders.CONTENT_TYPE);
-        if(types == null || types.isEmpty()) {
+        if (types == null || types.isEmpty()) {
             throw new IllegalStateException("Content-Type not specified");
         }
         //Content-type is always a single value

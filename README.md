@@ -19,11 +19,11 @@ Apart from the features provided by the original Unirest Java, this fork also pr
 
 * Updated API to make use of Java 8
 * Major Bug fixes
-* Independent client configuration
-* Improved API
+* Support for multiple independent clients
+* General API improvements
 * Updated async requests to use Java 8 CompletableFuture
 * Lazy response body parsing
-* Default json mapper with Gson
+* Default Gson parser 
 
 
 ### Maven
@@ -48,7 +48,7 @@ HttpClient sync and async client.
 
 ```java
 
-RestClient client = RestClient.newClient().build();
+RestClient client = RestClient.builder().build();
 
 ```
 
@@ -56,7 +56,7 @@ RestClient client = RestClient.newClient().build();
 
 ```java
 
-RestClient client = RestClient.newClient().baseUrl("http://my-api.com/v1").build();
+RestClient client = RestClient.builder().baseUrl("http://my-api.com/v1").build();
 String response = client.get("/some-resource").asString();
 
 ```
@@ -67,6 +67,15 @@ Unirest provides the same static methods as the original version. It's ideal for
 ```java
 
 String response = Unirest.get("http://my-api.com/v1").asString();
+
+```
+
+### Path parameters
+
+```java
+
+//Send a request to http://locahost:9000/v1/users/josh
+String response = client.post("http://locahost:9000", "v1", "users", "josh").asString();
 
 ```
 
@@ -110,7 +119,7 @@ client.post("http://my-service.com/login")
 ### Serialization
 Before using `asObject(Class)` or `.body(Object)`, is necessary to provide a custom implementation of the `ObjectMapper` interface.
 This should be done for each client.
-By default Gson is used as the default serializer, so there's no need to register any other json mapper unless you want a custom configuration.
+Json is supported out-of-the-box, so there's no need to register any other json mapper unless you want a custom configuration.
 Here's how to configure a new ObjectMapper:
 
 ```java

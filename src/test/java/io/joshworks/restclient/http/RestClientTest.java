@@ -132,6 +132,18 @@ public class RestClientTest {
     }
 
     @Test
+    public void pathParametersVarArgs() {
+        String url = client.resolveUrl("a", "b", "c");
+        assertEquals("a/b/c", url);
+    }
+
+    @Test
+    public void pathParametersVarArgsWithFS() {
+        String path = client.resolveUrl("/a", "b/", "/c/");
+        assertEquals("a/b/c", path);
+    }
+
+    @Test
     public void simplePost() {
         String message = "hello";
         HttpResponse<String> response = client.post(BASE_URL + "/echoPlain").body(message).asString();

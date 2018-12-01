@@ -68,6 +68,21 @@ public class HttpRequestWithBody extends HttpRequest {
     }
 
     @Override
+    public HttpRequestWithBody header(String name, Long value) {
+        return (HttpRequestWithBody) super.header(name, value);
+    }
+
+    @Override
+    public HttpRequestWithBody header(String name, Integer value) {
+        return (HttpRequestWithBody) super.header(name, value);
+    }
+
+    @Override
+    public HttpRequestWithBody header(String name, Double value) {
+        return (HttpRequestWithBody) super.header(name, value);
+    }
+
+    @Override
     public HttpRequestWithBody header(String name, String value) {
         return (HttpRequestWithBody) super.header(name, value);
     }

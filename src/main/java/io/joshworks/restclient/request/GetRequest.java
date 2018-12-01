@@ -37,9 +37,25 @@ public class GetRequest extends HttpRequest {
         super(config);
     }
 
+    @Override
     public GetRequest routeParam(String name, String value) {
         super.routeParam(name, value);
         return this;
+    }
+
+    @Override
+    public GetRequest header(String name, Long value) {
+        return (GetRequest) super.header(name, value);
+    }
+
+    @Override
+    public GetRequest header(String name, Integer value) {
+        return (GetRequest) super.header(name, value);
+    }
+
+    @Override
+    public GetRequest header(String name, Double value) {
+        return (GetRequest) super.header(name, value);
     }
 
     @Override
