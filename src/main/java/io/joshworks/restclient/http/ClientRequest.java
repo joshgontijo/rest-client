@@ -79,7 +79,7 @@ public class ClientRequest {
 
         HttpUriRequest requestObj = prepareRequest(request, true);
 
-        if(asyncClient == null) {
+        if (asyncClient == null) {
             throw new RestClientException("Async client not configured");
         }
 
@@ -115,7 +115,7 @@ public class ClientRequest {
 
         HttpUriRequest requestObj = prepareRequest(request, true);
 
-        if(asyncClient == null) {
+        if (asyncClient == null) {
             throw new RestClientException("Async client not configured");
         }
 
@@ -160,7 +160,7 @@ public class ClientRequest {
     }
 
     public <T> HttpResponse<T> request(final HttpRequest request, final Class<T> responseClass) {
-        if(syncClient == null) {
+        if (syncClient == null) {
             throw new RestClientException("Sync client not configured");
         }
         HttpRequestBase requestObj = prepareRequest(request, false);
@@ -178,10 +178,9 @@ public class ClientRequest {
         if (defaultHeaders != null) {
             for (Map.Entry<String, Object> entry : defaultHeaders.entrySet()) {
                 //Do not set content-type for multipart and urlencoded
-                if(entry.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE) && request.getBody().implicitContentType()) {
-                    continue;
+                if (!entry.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE) || request.getBody() == null || !request.getBody().implicitContentType()) {
+                    request.header(entry.getKey(), String.valueOf(entry.getValue()));
                 }
-                request.header(entry.getKey(), String.valueOf(entry.getValue()));
             }
         }
 
@@ -194,14 +193,14 @@ public class ClientRequest {
 
         String urlToRequest;
         try {
-            URL url = new URL(request.getUrl());
-            URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), URLDecoder.decode(url.getPath(), Constants.UTF_8), "", url.getRef());
+            URL reqUrl = new URL(request.getUrl());
+            URI uri = new URI(reqUrl.getProtocol(), reqUrl.getUserInfo(), reqUrl.getHost(), reqUrl.getPort(), URLDecoder.decode(reqUrl.getPath(), Constants.UTF_8), "", reqUrl.getRef());
             urlToRequest = uri.toURL().toString();
-            if (url.getQuery() != null && !url.getQuery().trim().equals("")) {
+            if (reqUrl.getQuery() != null && !reqUrl.getQuery().trim().equals("")) {
                 if (!urlToRequest.substring(urlToRequest.length() - 1).equals(Constants.QUESTION_MARK)) {
                     urlToRequest += Constants.QUESTION_MARK;
                 }
-                urlToRequest += url.getQuery();
+                urlToRequest += reqUrl.getQuery();
             } else if (urlToRequest.substring(urlToRequest.length() - 1).equals(Constants.QUESTION_MARK)) {
                 urlToRequest = urlToRequest.substring(0, urlToRequest.length() - 1);
             }
@@ -232,6 +231,8 @@ public class ClientRequest {
             case HEAD:
                 reqObj = new HttpHead(urlToRequest);
                 break;
+            default:
+                throw new IllegalArgumentException("Invalid HTTP method: " + request.getHttpMethod());
         }
 
         for (Map.Entry<String, List<String>> entry : request.getHeaders().entrySet()) {

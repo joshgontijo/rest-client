@@ -61,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -127,8 +128,8 @@ public class RestClientTest {
     public void simpleGet() {
         HttpResponse<String> response = client.get(BASE_URL + "/hello").asString();
         assertEquals(200, response.getStatus());
-        assertNotNull(response.getBody());
-        assertFalse(response.getBody().isEmpty());
+        assertNotNull(response.body());
+        assertFalse(response.body().isEmpty());
     }
 
     @Test
@@ -148,7 +149,7 @@ public class RestClientTest {
         String message = "hello";
         HttpResponse<String> response = client.post(BASE_URL + "/echoPlain").body(message).asString();
         assertEquals(200, response.getStatus());
-        assertEquals(message, response.getBody());
+        assertEquals(message, response.body());
     }
 
     @Test
@@ -156,7 +157,7 @@ public class RestClientTest {
         String message = "hello";
         HttpResponse<String> response = client.put(BASE_URL + "/echoPlain").body(message).asString();
         assertEquals(200, response.getStatus());
-        assertEquals(message, response.getBody());
+        assertEquals(message, response.body());
     }
 
     @Test
@@ -164,7 +165,7 @@ public class RestClientTest {
         String message = "hello";
         HttpResponse<String> response = client.delete(BASE_URL + "/echoPlain").body(message).asString();
         assertEquals(200, response.getStatus());
-        assertEquals(message, response.getBody());
+        assertEquals(message, response.body());
     }
 
     @Test
@@ -172,27 +173,27 @@ public class RestClientTest {
         String message = "hello";
         HttpResponse<String> response = client.options(BASE_URL + "/echoPlain").body(message).asString();
         assertEquals(200, response.getStatus());
-        assertEquals(message, response.getBody());
+        assertEquals(message, response.body());
     }
 
     @Test
     public void simpleHead() {
         HttpResponse<String> response = client.head(BASE_URL + "/echoPlain").asString();
         assertEquals(200, response.getStatus());
-        assertNull(response.getBody());
+        assertNull(response.body());
     }
 
     @Test
     public void nullBody() {
         HttpResponse<String> response = client.head(BASE_URL + "/nullBody").asString();
         assertEquals(200, response.getStatus());
-        assertNull(response.getBody());
+        assertNull(response.body());
     }
 
     @Test
     public void queryParamUTF8() {
         HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString("param3", "こんにちは").asJson();
-        assertEquals(response.getBody().getObject().getJSONObject("queryParams").getJSONArray("param3").get(0).toString(), "こんにちは");
+        assertEquals(response.body().getObject().getJSONObject("queryParams").getJSONArray("param3").get(0).toString(), "こんにちは");
     }
 
     @Test
@@ -202,7 +203,7 @@ public class RestClientTest {
                 .field("param3", value)
                 .asJson();
 
-        assertEquals(value, response.getBody().getObject().getJSONObject("body").getJSONArray("param3").getString(0));
+        assertEquals(value, response.body().getObject().getJSONObject("body").getJSONArray("param3").getString(0));
     }
 
     @Test
@@ -213,8 +214,8 @@ public class RestClientTest {
                 .part("file", new File(getClass().getResource("/test").toURI()))
                 .asJson();
 
-        assertEquals("This is a test file", response.getBody().getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
-        assertEquals(value, response.getBody().getObject().getJSONObject("body").getJSONArray("param3").getString(0));
+        assertEquals("This is a test file", response.body().getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
+        assertEquals(value, response.body().getObject().getJSONObject("body").getJSONArray("param3").getString(0));
     }
 
     @Test
@@ -224,8 +225,8 @@ public class RestClientTest {
                 .part("file", new File(getClass().getResource("/test").toURI()), type)
                 .asJson();
 
-        assertEquals(type, response.getBody().getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type"));
-        assertEquals("This is a test file", response.getBody().getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
+        assertEquals(type, response.body().getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type"));
+        assertEquals("This is a test file", response.body().getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
     }
 
     @Test
@@ -237,28 +238,28 @@ public class RestClientTest {
                 .header("Content-type", "text/plain")
                 .body(sentBytes)
                 .asString();
-        assertEquals(sourceString, response.getBody());
+        assertEquals(sourceString, response.body());
     }
 
     @Test
     public void redirect301() {
         HttpResponse<String> response = client.get(BASE_URL + "/redirect301").asString();
         assertEquals(200, response.getStatus());
-        assertEquals("Hello", response.getBody());
+        assertEquals("Hello", response.body());
     }
 
     @Test
     public void redirect302() {
         HttpResponse<String> response = client.get(BASE_URL + "/redirect302").asString();
         assertEquals(200, response.getStatus());
-        assertEquals("Hello", response.getBody());
+        assertEquals("Hello", response.body());
     }
 
     @Test
     public void redirect303() {
         HttpResponse<String> response = client.get(BASE_URL + "/redirect303").asString();
         assertEquals(200, response.getStatus());
-        assertEquals("Hello", response.getBody());
+        assertEquals("Hello", response.body());
     }
 
     @Test
@@ -281,7 +282,7 @@ public class RestClientTest {
     public void customUserAgent() {
         String agent = "hello-world";
         HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").header("user-agent", agent).asJson();
-        assertEquals(agent, response.getBody().getObject().getJSONObject("headers").getJSONArray("user-agent").get(0));
+        assertEquals(agent, response.body().getObject().getJSONObject("headers").getJSONArray("user-agent").get(0));
 
         GetRequest getRequest = client.get("http");
         for (Object current : Arrays.asList(0, 1, 2)) {
@@ -293,21 +294,21 @@ public class RestClientTest {
     public void getMultiple() {
         for (int i = 1; i <= 50; i++) {
             HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo?try=" + i).asJson();
-            assertEquals(response.getBody().getObject().getJSONObject("queryParams").getJSONArray("try").get(0), String.valueOf(i));
+            assertEquals(response.body().getObject().getJSONObject("queryParams").getJSONArray("try").get(0), String.valueOf(i));
         }
     }
 
     @Test
     public void getFields() {
         HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString("name", "mark").queryString("nick", "thefosk").asJson();
-        assertEquals(response.getBody().getObject().getJSONObject("queryParams").getJSONArray("name").get(0), "mark");
-        assertEquals(response.getBody().getObject().getJSONObject("queryParams").getJSONArray("nick").get(0), "thefosk");
+        assertEquals(response.body().getObject().getJSONObject("queryParams").getJSONArray("name").get(0), "mark");
+        assertEquals(response.body().getObject().getJSONObject("queryParams").getJSONArray("nick").get(0), "thefosk");
     }
 
     @Test
     public void getFieldsEmailFormat() {
         HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString("email", "hello@hello.com").asJson();
-        assertEquals("hello@hello.com", response.getBody().getObject().getJSONObject("queryParams").getJSONArray("email").get(0));
+        assertEquals("hello@hello.com", response.body().getObject().getJSONObject("queryParams").getJSONArray("email").get(0));
     }
 
     @Test
@@ -315,13 +316,13 @@ public class RestClientTest {
         String testKey = "email2=someKey&email";
         String testValue = "hello@hello.com";
         HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString(testKey, testValue).asJson();
-        assertEquals(testValue, response.getBody().getObject().getJSONObject("queryParams").getJSONArray(testKey).get(0));
+        assertEquals(testValue, response.body().getObject().getJSONObject("queryParams").getJSONArray(testKey).get(0));
     }
 
     @Test
     public void basicAuth() {
         HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").basicAuth("user", "test").asJson();
-        assertEquals("Basic dXNlcjp0ZXN0", response.getBody().getObject().getJSONObject("headers").getJSONArray("Authorization").get(0));
+        assertEquals("Basic dXNlcjp0ZXN0", response.body().getObject().getJSONObject("headers").getJSONArray("Authorization").get(0));
     }
 
     @Test
@@ -338,11 +339,11 @@ public class RestClientTest {
         HttpResponse<JsonNode> jsonResponse = future.get();
 
         assertTrue(jsonResponse.getHeaders().size() > 0);
-        assertTrue(jsonResponse.getBody().toString().length() > 0);
+        assertTrue(jsonResponse.body().toString().length() > 0);
         assertFalse(jsonResponse.getRawBody() == null);
         assertEquals(200, jsonResponse.getStatus());
 
-        JsonNode json = jsonResponse.getBody();
+        JsonNode json = jsonResponse.body();
         assertFalse(json.isArray());
         assertNotNull(json.getObject());
         assertNotNull(json.getArray());
@@ -368,19 +369,19 @@ public class RestClientTest {
                     @Override
                     public void completed(HttpResponse<JsonNode> jsonResponse) {
                         assertTrue(jsonResponse.getHeaders().size() > 0);
-                        assertTrue(jsonResponse.getBody().toString().length() > 0);
+                        assertTrue(jsonResponse.body().toString().length() > 0);
                         assertFalse(jsonResponse.getRawBody() == null);
                         assertEquals(200, jsonResponse.getStatus());
 
-                        JsonNode json = jsonResponse.getBody();
+                        JsonNode json = jsonResponse.body();
                         assertFalse(json.isArray());
                         assertNotNull(json.getObject());
                         assertNotNull(json.getArray());
                         assertEquals(1, json.getArray().length());
                         assertNotNull(json.getArray().get(0));
 
-                        assertEquals("value1", jsonResponse.getBody().getObject().getJSONObject("body").getJSONArray("param1").getString(0));
-                        assertEquals("bye", jsonResponse.getBody().getObject().getJSONObject("body").getJSONArray("param2").getString(0));
+                        assertEquals("value1", jsonResponse.body().getObject().getJSONObject("body").getJSONArray("param1").getString(0));
+                        assertEquals("bye", jsonResponse.body().getObject().getJSONObject("body").getJSONArray("param2").getString(0));
 
                         status = true;
                         lock.countDown();
@@ -392,7 +393,7 @@ public class RestClientTest {
                     }
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -407,7 +408,7 @@ public class RestClientTest {
 
         validateBasicFormFields(response);
 
-        JsonNode json = response.getBody();
+        JsonNode json = response.body();
         assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
     }
@@ -428,7 +429,7 @@ public class RestClientTest {
                 .field("name", "Mark")
                 .asJson();
 
-        JSONArray contentTypeValues = response.getBody().getObject().getJSONObject("headers").getJSONArray(HttpHeaders.CONTENT_TYPE);
+        JSONArray contentTypeValues = response.body().getObject().getJSONObject("headers").getJSONArray(HttpHeaders.CONTENT_TYPE);
         assertEquals(1, contentTypeValues.length());
         assertEquals(ContentType.APPLICATION_FORM_URLENCODED.withCharset(Charsets.UTF_8).toString(), contentTypeValues.getString(0));
     }
@@ -442,7 +443,7 @@ public class RestClientTest {
 
         validateBasicFormFields(response);
 
-        JsonNode json = response.getBody();
+        JsonNode json = response.body();
         assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains("text/plain"));
         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
     }
@@ -457,7 +458,7 @@ public class RestClientTest {
 
             validateBasicFormFields(response);
 
-            JsonNode json = response.getBody();
+            JsonNode json = response.body();
             JSONObject headers = json.getObject().getJSONObject("headers");
             assertTrue(headers.getJSONArray(HttpHeaders.CONTENT_TYPE).get(0).toString().contains(MediaType.MULTIPART_FORM_DATA));
             assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains("text/plain"));
@@ -472,7 +473,7 @@ public class RestClientTest {
                     .field("name", "Mark")
                     .asJson();
 
-            JsonNode json = response.getBody();
+            JsonNode json = response.body();
             JSONObject headers = json.getObject().getJSONObject("headers");
             assertTrue(headers.getJSONArray(HttpHeaders.CONTENT_TYPE).get(0).toString().contains(MediaType.APPLICATION_FORM_URLENCODED));
             assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
@@ -489,7 +490,7 @@ public class RestClientTest {
 
         validateBasicFormFields(response);
 
-        JsonNode json = response.getBody();
+        JsonNode json = response.body();
         assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains(ContentType.APPLICATION_OCTET_STREAM.getMimeType()));
         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
     }
@@ -497,10 +498,10 @@ public class RestClientTest {
     private void validateBasicFormFields(HttpResponse<JsonNode> response) {
         assertEquals(200, response.getStatus());
         assertTrue(response.getHeaders().size() > 0);
-        assertTrue(response.getBody().toString().length() > 0);
+        assertTrue(response.body().toString().length() > 0);
         assertFalse(response.getRawBody() == null);
 
-        JsonNode json = response.getBody();
+        JsonNode json = response.body();
         assertFalse(json.isArray());
         assertNotNull(json.getObject());
         assertNotNull(json.getArray());
@@ -526,7 +527,7 @@ public class RestClientTest {
                     public void completed(HttpResponse<JsonNode> response) {
                         validateBasicFormFields(response);
 
-                        JsonNode json = response.getBody();
+                        JsonNode json = response.body();
                         assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains(ContentType.APPLICATION_OCTET_STREAM.getMimeType()));
                         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").get(0));
 
@@ -540,7 +541,7 @@ public class RestClientTest {
 
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -554,7 +555,7 @@ public class RestClientTest {
                 .part("file", bytes, "test.txt")
                 .asJson();
 
-        JsonNode json = response.getBody();
+        JsonNode json = response.body();
         assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains(ContentType.APPLICATION_OCTET_STREAM.getMimeType()));
         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
     }
@@ -580,7 +581,7 @@ public class RestClientTest {
                     public void completed(HttpResponse<JsonNode> response) {
                         validateBasicFormFields(response);
 
-                        JsonNode json = response.getBody();
+                        JsonNode json = response.body();
                         assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
                         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
 
@@ -594,7 +595,7 @@ public class RestClientTest {
 
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -606,7 +607,7 @@ public class RestClientTest {
         client.get(BASE_URL + "/hello")
                 .asStringAsync()
                 .thenAccept(resp -> {
-                    assertEquals("Hello", resp.getBody());
+                    assertEquals("Hello", resp.body());
                     latch.countDown();
                 });
 
@@ -630,7 +631,7 @@ public class RestClientTest {
                     }
 
                     public void completed(HttpResponse<JsonNode> response) {
-                        JsonNode json = response.getBody();
+                        JsonNode json = response.body();
                         assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
                         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
 
@@ -644,7 +645,7 @@ public class RestClientTest {
 
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -661,7 +662,7 @@ public class RestClientTest {
         assertFalse(response.getRawBody() == null);
         assertEquals(200, response.getStatus());
 
-        JSONArray contentTypes = response.getBody().getObject().getJSONArray("Content-Type");
+        JSONArray contentTypes = response.body().getObject().getJSONArray("Content-Type");
         assertEquals(1, contentTypes.length());
         assertEquals("application/json", contentTypes.get(0));
     }
@@ -677,7 +678,7 @@ public class RestClientTest {
         assertFalse(response.getRawBody() == null);
         assertEquals(200, response.getStatus());
 
-        assertEquals(value, response.getBody());
+        assertEquals(value, response.body());
     }
 
     @Test
@@ -692,7 +693,7 @@ public class RestClientTest {
         assertFalse(response.getRawBody() == null);
         assertEquals(200, response.getStatus());
 
-        assertEquals(value, response.getBody());
+        assertEquals(value, response.body());
     }
 
     @Test
@@ -707,15 +708,15 @@ public class RestClientTest {
 
             HttpResponse<JsonNode> jsonResponse = customClient.post(BASE_URL + "/echoHeaders").asJson();
             assertTrue(jsonResponse.getHeaders().size() > 0);
-            assertTrue(jsonResponse.getBody().toString().length() > 0);
+            assertTrue(jsonResponse.body().toString().length() > 0);
             assertFalse(jsonResponse.getRawBody() == null);
             assertEquals(200, jsonResponse.getStatus());
 
-            JsonNode json = jsonResponse.getBody();
+            JsonNode json = jsonResponse.body();
             assertFalse(json.isArray());
-            assertTrue(jsonResponse.getBody().getObject().has("X-Custom-Header"));
+            assertTrue(jsonResponse.body().getObject().has("X-Custom-Header"));
             assertEquals(customHeaderVal, json.getObject().getJSONArray("X-Custom-Header").get(0));
-            assertTrue(jsonResponse.getBody().getObject().has("User-Agent"));
+            assertTrue(jsonResponse.body().getObject().has("User-Agent"));
             assertEquals(userAgentVal, json.getObject().getJSONArray("User-Agent").get(0));
         }
     }
@@ -778,7 +779,7 @@ public class RestClientTest {
                 .asString();
 
         assertEquals(200, response.getStatus());
-        assertEquals(value, response.getBody());
+        assertEquals(value, response.body());
     }
 
     @Test
@@ -789,7 +790,7 @@ public class RestClientTest {
                 .asString();
 
         assertEquals(200, response.getStatus());
-        assertEquals(value, response.getBody());
+        assertEquals(value, response.body());
     }
 
     @Test
@@ -800,7 +801,7 @@ public class RestClientTest {
                 .asString();
 
         assertEquals(200, response.getStatus());
-        assertEquals(value, response.getBody());
+        assertEquals(value, response.body());
     }
 
     @Test
@@ -813,8 +814,8 @@ public class RestClientTest {
                 .asJson();
 
         assertEquals(200, response.getStatus());
-        assertEquals(pathValue, response.getBody().getObject().getJSONObject("path").getString("pathParam"));
-        assertEquals(queryValue, response.getBody().getObject().getJSONObject("queryParams").getJSONArray("q").get(0));
+        assertEquals(pathValue, response.body().getObject().getJSONObject("path").getString("pathParam"));
+        assertEquals(queryValue, response.body().getObject().getJSONObject("queryParams").getJSONArray("q").get(0));
     }
 
     @Test
@@ -829,9 +830,9 @@ public class RestClientTest {
                 .asJson();
 
         assertEquals(200, response.getStatus());
-        assertEquals(queryVal, response.getBody().getObject().getJSONObject("queryParams").getJSONArray("q").get(0));
-        assertEquals(pathParamVal, response.getBody().getObject().getJSONObject("path").getString("pathParam"));
-        assertEquals(formParamVal, response.getBody().getObject().getJSONObject("body").getJSONArray("formParam").getString(0));
+        assertEquals(queryVal, response.body().getObject().getJSONObject("queryParams").getJSONArray("q").get(0));
+        assertEquals(pathParamVal, response.body().getObject().getJSONObject("path").getString("pathParam"));
+        assertEquals(formParamVal, response.body().getObject().getJSONObject("body").getJSONArray("formParam").getString(0));
     }
 
 
@@ -896,7 +897,7 @@ public class RestClientTest {
                     }
 
                     public void completed(HttpResponse<JsonNode> response) {
-                        JsonNode json = response.getBody();
+                        JsonNode json = response.body();
                         assertEquals("world", json.getObject().getJSONObject("body").getString("hello"));
                         assertEquals("application/json", json.getObject().getJSONObject("headers").getJSONArray("Content-Type").get(0));
 
@@ -909,7 +910,7 @@ public class RestClientTest {
                     }
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -931,7 +932,7 @@ public class RestClientTest {
                     }
 
                     public void completed(HttpResponse<JsonNode> response) {
-                        JsonNode json = response.getBody();
+                        JsonNode json = response.body();
                         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
                         assertEquals("world", json.getObject().getJSONObject("body").getJSONArray("hello").getString(0));
 
@@ -946,7 +947,7 @@ public class RestClientTest {
                     }
                 });
 
-        if(!lock.await(10, TimeUnit.SECONDS)) {
+        if (!lock.await(10, TimeUnit.SECONDS)) {
             fail("Wait time exceeded");
         }
         assertTrue(status);
@@ -959,7 +960,7 @@ public class RestClientTest {
                 .queryString("name", "Tom")
                 .asJson();
 
-        JSONArray names = response.getBody().getObject().getJSONObject("queryParams").getJSONArray("name");
+        JSONArray names = response.body().getObject().getJSONObject("queryParams").getJSONArray("name");
         assertEquals(2, names.length());
 
         assertEquals("Mark", names.getString(0));
@@ -974,7 +975,7 @@ public class RestClientTest {
                 .part("file2", new File(getClass().getResource("/test").toURI()))
                 .asJson();
 
-        JSONObject body = response.getBody().getObject().getJSONObject("body");
+        JSONObject body = response.body().getObject().getJSONObject("body");
         assertEquals(3, body.length());
 
 
@@ -990,7 +991,7 @@ public class RestClientTest {
                 .queryString("name", Arrays.asList("Mark", "Tom"))
                 .asJson();
 
-        JSONArray names = response.getBody().getObject().getJSONObject("queryParams").getJSONArray("name");
+        JSONArray names = response.body().getObject().getJSONObject("queryParams").getJSONArray("name");
         assertEquals(2, names.length());
 
         assertEquals("Mark", names.getString(0));
@@ -1005,7 +1006,7 @@ public class RestClientTest {
                 .asJson();
 
         assertEquals(200, response.getStatus());
-        JSONArray names = response.getBody().getObject().getJSONObject("body").getJSONArray("name");
+        JSONArray names = response.body().getObject().getJSONObject("body").getJSONArray("name");
         assertEquals(2, names.length());
 
         assertEquals("Mark", names.getString(0));
@@ -1025,7 +1026,7 @@ public class RestClientTest {
                 .asSetOf(String.class);
 
         assertEquals(200, response.getStatus());
-        assertEquals(values.size(), response.getBody().size());
+        assertEquals(values.size(), response.body().size());
     }
 
     @Test
@@ -1041,7 +1042,7 @@ public class RestClientTest {
                 .asListOf(String.class);
 
         assertEquals(200, response.getStatus());
-        assertEquals(values.size(), response.getBody().size());
+        assertEquals(values.size(), response.body().size());
     }
 
     @Test
@@ -1050,7 +1051,7 @@ public class RestClientTest {
                 .field("name", Arrays.asList("Mark", "Tom"))
                 .asJson();
 
-        JSONArray names = response.getBody().getObject().getJSONObject("body").getJSONArray("name");
+        JSONArray names = response.body().getObject().getJSONObject("body").getJSONArray("name");
         assertEquals(2, names.length());
 
         assertEquals("Mark", names.getString(0));
@@ -1068,7 +1069,7 @@ public class RestClientTest {
         assertEquals("Marco", request.getHeaders().get("Name").get(0));
 
         HttpResponse<JsonNode> response = request.asJson();
-        JSONObject headers = response.getBody().getObject();
+        JSONObject headers = response.body().getObject();
         assertEquals("Marco", headers.getJSONArray("Name").getString(0));
 
     }
@@ -1087,7 +1088,7 @@ public class RestClientTest {
         assertEquals("Marco", request.getHeaders().get("Name").get(0));
         assertEquals("John", request.getHeaders().get("Name").get(1));
 
-        JSONArray headers = request.asJson().getBody().getObject().getJSONArray("Name");
+        JSONArray headers = request.asJson().body().getObject().getJSONArray("Name");
 
         Set<String> headerValues = StreamSupport.stream(headers.spliterator(), false)
                 .map(String::valueOf).collect(Collectors.toSet());
@@ -1177,8 +1178,8 @@ public class RestClientTest {
                 .body(testData).asObject(TestData.class);
 
         assertEquals(200, getResponse.getStatus());
-        assertNotNull(getResponse.getBody());
-        assertEquals(testData, getResponse.getBody());
+        assertNotNull(getResponse.body());
+        assertEquals(testData, getResponse.body());
     }
 
     @Test
@@ -1190,7 +1191,7 @@ public class RestClientTest {
                 .body(sourceString.getBytes(StandardCharsets.UTF_8))
                 .asBinary()) {
 
-            InputStream body = response.getBody();
+            InputStream body = response.body();
             String received = TestUtils.toString(body);
             assertEquals(sourceString, received);
 
@@ -1213,7 +1214,7 @@ public class RestClientTest {
                 .body(testData).asObject(TestData.class);
 
         assertEquals(200, response.getStatus());
-        assertEquals(testData, response.getBody());
+        assertEquals(testData, response.body());
     }
 
 
@@ -1281,40 +1282,58 @@ public class RestClientTest {
 
     @Test(expected = RestClientException.class)
     public void withNoHttpBuilder() {
-        try(RestClient client = RestClient.with(null)) {
+        try (RestClient client = RestClient.with(null)) {
             client.get(BASE_URL + "/hello").asString();
         }
     }
 
     @Test
     public void withHttpBuilder() {
-        try(RestClient client = RestClient.with(HttpClientBuilder.create())) {
+        try (RestClient client = RestClient.with(HttpClientBuilder.create())) {
             HttpResponse<String> response = client.get(BASE_URL + "/hello").asString();
             assertEquals(200, response.getStatus());
-            assertNotNull(response.getBody());
+            assertNotNull(response.body());
         }
     }
 
     @Test(expected = RestClientException.class)
     public void withNoHttpAsyncBuilder() {
-        try(RestClient client = RestClient.with(null)) {
+        try (RestClient client = RestClient.with(null)) {
             client.get(BASE_URL + "/hello").asStringAsync();
         }
     }
 
     @Test
     public void withHttpAsyncBuilder() throws InterruptedException {
-        try(RestClient client = RestClient.with(null, HttpAsyncClientBuilder.create())) {
+        try (RestClient client = RestClient.with(null, HttpAsyncClientBuilder.create())) {
             CountDownLatch latch = new CountDownLatch(1);
             client.get(BASE_URL + "/hello").asStringAsync().thenAccept(response -> {
                 latch.countDown();
                 assertEquals(200, response.getStatus());
             });
 
-            if(!latch.await(5, TimeUnit.SECONDS)) {
+            if (!latch.await(5, TimeUnit.SECONDS)) {
                 fail("Countdown timeout exceeded");
             }
 
         }
+    }
+
+    @Test
+    public void null_response_body() {
+        try (RestClient client = RestClient.builder().defaultHeader("Content-Type", "application/json").build()) {
+            HttpResponse<Map> response = client.get(BASE_URL + "/null").asObject(Map.class);
+            assertNull(response.body());
+        }
+    }
+
+    @Test
+    public void defaultHeadersWithNullBody() {
+
+        try (RestClient client = RestClient.builder().defaultHeader("Content-Type", "application/json").build()) {
+            HttpResponse<Map> response = client.get(BASE_URL + "/null").asObject(Map.class);
+            assertNull(response.body());
+        }
+
     }
 }

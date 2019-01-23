@@ -48,6 +48,7 @@ public class TestServer {
         get("/echo/{name}", exchange -> exchange.send(exchange.pathParameter("name"), "txt"));
         get("/get", exchange -> exchange.status(200).end());
         get("/500", exchange -> exchange.status(500));
+        get("/null", exchange -> exchange.send(null));
 
 
         //redirect

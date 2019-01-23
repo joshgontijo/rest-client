@@ -41,7 +41,7 @@ class HttpStreamResponse<T> extends HttpResponse<T> {
     }
 
     @Override
-    public T getBody() {
+    public T body() {
         return (T) super.rawBody;
     }
 

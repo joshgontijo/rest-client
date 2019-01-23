@@ -37,12 +37,10 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.util.EntityUtils;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -54,7 +52,7 @@ public class HttpResponse<T> implements Closeable {
     private final Headers headers;
     protected final InputStream rawBody;
     private final Class<T> responseClass;
-    private T body;
+    private byte[] cached;
 
     HttpResponse(org.apache.http.HttpResponse response, Class<T> responseClass) {
         this.headers = responseHeaders(response);
@@ -135,46 +133,61 @@ public class HttpResponse<T> implements Closeable {
         return headers;
     }
 
+    /**
+     * Returns the raw response data stream, the data will no be cached for further readings
+     * @return The raw data stream
+     */
     public InputStream getRawBody() {
+        if(cached != null) {
+            return new ByteArrayInputStream(cached);
+        }
         return rawBody;
     }
 
-    public T getBody() {
-        if (this.body == null) {
-            this.body = parseBody();
-        }
-        return body;
+    public <E> E bodyAs(Class<E> type) {
+        return getObjectMapper().readValue(asString(), type);
     }
 
-    private T parseBody() {
-        if (InputStream.class.equals(responseClass)) {
+    public String asString() {
+        return readBodyAsString();
+    }
+
+    public T body() {
+        return parseBody(responseClass);
+    }
+
+    private T parseBody(Class<T> type) {
+        if (InputStream.class.equals(type)) {
+            if (cached != null) {
+                return (T) new ByteArrayInputStream(cached);
+            }
             return (T) this.rawBody;
         }
 
         String bodyString = readBodyAsString();
 
-        if (JsonNode.class.equals(responseClass)) {
+        if (JsonNode.class.equals(type)) {
             return (T) new JsonNode(bodyString);
-        } else if (String.class.equals(responseClass)) {
+        } else if (String.class.equals(type)) {
             return (T) bodyString;
         } else {
-            return getObjectMapper().readValue(bodyString, responseClass);
+            return getObjectMapper().readValue(bodyString, type);
         }
     }
 
     private String readBodyAsString() {
         try {
-            if (this.rawBody == null) {
+            if (this.rawBody == null && cached == null) {
                 return null;
             }
-            String charset = getCharset();
-            StringBuilder sb = new StringBuilder();
-            BufferedReader br = new BufferedReader(new InputStreamReader(this.rawBody, charset));
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
+
+            if(cached == null) {
+                cached = ResponseUtils.readBytes(rawBody);
+                rawBody.close();
             }
-            return sb.toString();
+
+            String charset = getCharset();
+            return new String(cached, charset);
         } catch (IOException e) {
             throw new RestClientException(e);
         }

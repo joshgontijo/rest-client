@@ -42,7 +42,7 @@ public class LargeFileIT {
         try (HttpResponse<InputStream> response = Unirest.get("http://localhost:9000/download").asBinary()) {
             System.out.println("Request sent");
             assertEquals(200, response.getStatus());
-            assertEquals(STREAM_SIZE, TestUtils.streamSize(response.getBody()));
+            assertEquals(STREAM_SIZE, TestUtils.streamSize(response.body()));
         }
     }
 
@@ -54,7 +54,7 @@ public class LargeFileIT {
                     .asString();
 
             assertEquals(200, response.getStatus());
-            assertEquals(STREAM_SIZE, Long.parseLong(response.getBody()));
+            assertEquals(STREAM_SIZE, Long.parseLong(response.body()));
 
         } finally {
             TestUtils.deleteBigFile();
@@ -70,7 +70,7 @@ public class LargeFileIT {
 
             HttpResponse<String> response = futureResponse.get();
             assertEquals(200, response.getStatus());
-            assertEquals(STREAM_SIZE, Long.parseLong(response.getBody()));
+            assertEquals(STREAM_SIZE, Long.parseLong(response.body()));
         } finally {
             TestUtils.deleteBigFile();
         }

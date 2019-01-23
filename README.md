@@ -32,7 +32,7 @@ Apart from the features provided by the original Unirest Java, this fork also pr
 <dependency>
     <groupId>io.joshworks.unirest</groupId>
     <artifactId>unirest-java</artifactId>
-    <version>1.6.0</version>
+    <version>1.7.0</version>
 </dependency>
 ```
 
@@ -87,7 +87,7 @@ This also gives you the ability to compose multiple requests in a convenient way
 client.get("http://my-api.com/v1/hello")
         .asStringAsync()
         .thenAccept(resp -> {
-            System.out.println(resp.getBody())
+            System.out.println(resp.body())
          })
          .exceptionally(e -> {
             e.printStackTrace();

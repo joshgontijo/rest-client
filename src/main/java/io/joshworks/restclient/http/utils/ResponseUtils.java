@@ -33,7 +33,7 @@ public class ResponseUtils {
 
     public static byte[] readBytes(InputStream is) throws IOException {
         int len;
-        int size = 4096;
+        int size = 8192;
         byte[] buf;
 
         if (is instanceof ByteArrayInputStream) {
