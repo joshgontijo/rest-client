@@ -9,13 +9,12 @@ This fork is intended to fix the bugs left by the original authors, improve the 
 Improvements, new ideas, and bug reports are very welcome. 
 
 
-
 [![License][license-image]][license-url]
 
 
 ## Features
 
-Apart from the features provided by the original Unirest Java, this fork also provides:
+Apart from the features provided by the original Unirest Java, this fork also has:
 
 * Updated API to make use of Java 8
 * Major Bug fixes
@@ -36,12 +35,6 @@ Apart from the features provided by the original Unirest Java, this fork also pr
 </dependency>
 ```
 
-## Basics
-
-Please read the [Unirest Documentation](https://github.com/Mashape/unirest-java) for basic examples on how to use the core api.
-This documentation aims to show the additional features and improvements from the original library.
-
-
 ### Creating a new client with defaults
 The following example creates a new basic RestClient instance. At the moment, each client will have its own 
 HttpClient sync and async client.
@@ -50,6 +43,18 @@ HttpClient sync and async client.
 
 RestClient client = RestClient.builder().build();
 
+```
+
+## Creating Request
+
+```java
+
+RestClient client = RestClient.builder().build();
+
+HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/post")
+  .header("accept", "application/json")
+  .queryString("apiKey", "123")
+  .asJson();
 ```
 
 ### Base url
@@ -71,13 +76,23 @@ String response = Unirest.get("http://my-api.com/v1").asString();
 ```
 
 ### Path parameters
-
+With the new API, there's no need to concatenate path parameters, making the it easier and much more convenient to use.
+You can either provide a varargs path. Or you can use a template and then use `.routeParam()` to specify its values.
 ```java
 
-//Send a request to http://locahost:9000/v1/users/josh
-String response = client.post("http://locahost:9000", "v1", "users", "josh").asString();
+//Sends a request to http://my-api.com/v1/users
+String response = client.post("http://my-api.com", "v1", "users").asString();
+
+//Alternatively
+
+//Also Sends a request to http://my-api.com/v1/users
+String response = client.get("http://my-api.com/{verion}/{endpoint}")
+  .routeParam("verion", "v1")
+  .routeParam("endpoint", "users")
+  .asString();
 
 ```
+
 
 ### Async requests with CompletableFuture
 When using asynchronous requests you can use Java 8 CompletableFuture to handle the response.
