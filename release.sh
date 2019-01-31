@@ -8,6 +8,10 @@ fi
 
 echo "Releasing version $1"
 
+mvn clean install
+
+mvn versions:set -DgenerateBackupPoms=false -DnewVersion=$1
+
 git commit -a -m "Release $1"
 git push origin master
 
