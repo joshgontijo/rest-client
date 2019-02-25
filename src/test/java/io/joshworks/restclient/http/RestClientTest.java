@@ -1334,6 +1334,13 @@ public class RestClientTest {
             HttpResponse<Map> response = client.get(BASE_URL + "/null").asObject(Map.class);
             assertNull(response.body());
         }
+    }
 
+    @Test
+    public void utf8Encoding() {
+        HttpResponse<JsonNode> response = client.get(BASE_URL + "/utf8Json").asJson();
+        assertEquals(200, response.getStatus());
+        Map<String, Object> body = response.bodyAs(Map.class);
+        System.out.println(body);
     }
 }

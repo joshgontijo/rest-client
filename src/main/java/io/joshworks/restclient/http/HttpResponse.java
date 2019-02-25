@@ -209,7 +209,7 @@ public class HttpResponse<T> implements Closeable {
     private ObjectMapper getObjectMapper() {
         String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
         if (contentType == null) {
-            return null;
+            throw new RestClientException("Response Content-Type header not found");
         }
         MediaType mediaType = MediaType.valueOf(contentType);
         ObjectMapper mapper = ObjectMappers.getMapper(mediaType);

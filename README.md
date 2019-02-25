@@ -1,12 +1,7 @@
 # RestClient - [Unirest](https://github.com/Mashape/unirest-java) fork
 
-
-[Unirest](http://unirest.io) is a set of lightweight HTTP libraries available in multiple languages, built and maintained 
-by [Mashape](https://github.com/Mashape), who also maintain the open-source API Gateway 
-[Kong](https://github.com/Mashape/kong).
-
 This fork is intended to fix the bugs left by the original authors, improve the API, and provide continuous support.
-Improvements, new ideas, and bug reports are very welcome. 
+Improvements, new ideas, and bug reports are always welcome. The  
 
 
 [![License][license-image]][license-url]
@@ -31,7 +26,7 @@ Apart from the features provided by the original Unirest Java, this fork also ha
 <dependency>
     <groupId>io.joshworks.unirest</groupId>
     <artifactId>unirest-java</artifactId>
-    <version>1.7.0</version>
+    <version>1.7.1</version>
 </dependency>
 ```
 

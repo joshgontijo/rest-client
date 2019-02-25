@@ -49,6 +49,7 @@ public class TestServer {
         get("/get", exchange -> exchange.status(200).end());
         get("/500", exchange -> exchange.status(500));
         get("/null", exchange -> exchange.send(null));
+        get("/utf8Json", exchange -> exchange.send("{}"), produces("application/json; charset=utf-8"));
 
 
         //redirect

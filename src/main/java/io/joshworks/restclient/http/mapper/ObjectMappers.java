@@ -24,16 +24,20 @@ public class ObjectMappers {
     }
 
     public static ObjectMapper getMapper(MediaType type) {
-        if(mappers.isEmpty()) {
+        if (mappers.isEmpty()) {
             synchronized (mappers) {
-                if(mappers.isEmpty()) {
+                if (mappers.isEmpty()) {
                     //default mappers
                     ObjectMappers.register(MediaType.TEXT_PLAIN_TYPE, new TextPlainMapper());
                     ObjectMappers.register(MediaType.APPLICATION_JSON_TYPE, new JsonMapper());
                 }
             }
         }
-        return mappers.get(type);
+        ObjectMapper mapper = mappers.get(type);
+        if (mapper == null) {
+            mapper = mappers.entrySet().stream().filter(kv -> kv.getKey().isCompatible(type)).map(Map.Entry::getValue).findFirst().get();
+        }
+        return mapper;
     }
 
 }
