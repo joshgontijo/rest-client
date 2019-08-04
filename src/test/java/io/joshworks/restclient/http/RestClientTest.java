@@ -1032,7 +1032,6 @@ public class RestClientTest {
         for (TestData item : items) {//tests ClassCastException
             assertNotNull(item);
         }
-
     }
 
     @Test

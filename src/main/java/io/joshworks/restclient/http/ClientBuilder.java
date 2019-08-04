@@ -8,7 +8,13 @@ import org.apache.http.auth.Credentials;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -19,12 +25,20 @@ import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.nio.conn.NoopIOSessionStrategy;
+import org.apache.http.nio.conn.SchemeIOSessionStrategy;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
 
 import javax.net.ssl.SSLContext;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public class ClientBuilder {
@@ -33,7 +47,7 @@ public class ClientBuilder {
     private int maxTotal = 20;
     private int maxRoute = 2;
     private String baseUrl = "";
-
+    private boolean sslCheckDisabled;
     private Function<String, String> urlTransformer = url -> url;
     private Map<String, Object> defaultHeaders = new HashMap<>();
 
@@ -42,6 +56,7 @@ public class ClientBuilder {
     private List<HttpResponseInterceptor> responseInterceptor = new LinkedList<>();
     private final CookieStore cookieStore = new BasicCookieStore();
     private SSLContext sslContext;
+    private long connectionTTL = -1;
 
     ClientBuilder() {
 
@@ -52,24 +67,79 @@ public class ClientBuilder {
 
             RequestConfig clientConfig = configBuilder.build();
 
-            PoolingHttpClientConnectionManager syncConnectionManager = new PoolingHttpClientConnectionManager();
-            syncConnectionManager.setMaxTotal(maxTotal);
-            syncConnectionManager.setDefaultMaxPerRoute(maxRoute);
+            PoolingHttpClientConnectionManager syncConnectionManager = createSyncPoolingConnectionManager();
             CloseableHttpClient syncClient = createSyncClient(clientConfig, syncConnectionManager);
 
-            DefaultConnectingIOReactor ioReactor = new DefaultConnectingIOReactor();
-            PoolingNHttpClientConnectionManager asyncConnectionManager = new PoolingNHttpClientConnectionManager(ioReactor);
-            asyncConnectionManager.setMaxTotal(maxTotal);
-            asyncConnectionManager.setDefaultMaxPerRoute(maxRoute);
+            PoolingNHttpClientConnectionManager asyncConnectionManager = createAsyncPoolingConnectionManager();
             CloseableHttpAsyncClient asyncClient = createAsyncClient(clientConfig, asyncConnectionManager);
 
             RestClient restClient = new RestClient(baseUrl, defaultHeaders, urlTransformer, asyncConnectionManager, syncConnectionManager, asyncClient, syncClient, cookieStore);
             ClientContainer.addClient(restClient);
+
             return restClient;
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private PoolingNHttpClientConnectionManager createAsyncPoolingConnectionManager() throws Exception {
+        PoolingNHttpClientConnectionManager asyncConnectionManager = new PoolingNHttpClientConnectionManager(
+                new DefaultConnectingIOReactor(),
+                null,
+                asyncSessionStrategy(),
+                null,
+                null,
+                connectionTTL,
+                TimeUnit.MILLISECONDS);
+
+        asyncConnectionManager.setMaxTotal(maxTotal);
+        asyncConnectionManager.setDefaultMaxPerRoute(maxRoute);
+        return asyncConnectionManager;
+    }
+
+    private PoolingHttpClientConnectionManager createSyncPoolingConnectionManager() throws Exception {
+        PoolingHttpClientConnectionManager syncConnectionManager = new PoolingHttpClientConnectionManager(
+                syncSessionStrategy(),
+                null,
+                null,
+                null,
+                connectionTTL,
+                TimeUnit.MILLISECONDS);
+
+        syncConnectionManager.setMaxTotal(maxTotal);
+        syncConnectionManager.setDefaultMaxPerRoute(maxRoute);
+        return syncConnectionManager;
+    }
+
+
+    private Registry<ConnectionSocketFactory> syncSessionStrategy() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+        return RegistryBuilder.<ConnectionSocketFactory> create()
+                .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                .register("https", new SSLConnectionSocketFactory(byPassCertificate(), new NoopHostnameVerifier()))
+                .build();
+    }
+
+
+    private Registry<SchemeIOSessionStrategy> asyncSessionStrategy() throws Exception {
+        SchemeIOSessionStrategy httpsSessionStrategy = sslCheckDisabled ? noCertificateCheck() : SSLIOSessionStrategy.getDefaultStrategy();
+
+        return RegistryBuilder.<SchemeIOSessionStrategy>create()
+                .register("http", NoopIOSessionStrategy.INSTANCE)
+                .register("https", httpsSessionStrategy)
+                .build();
+
+    }
+
+    private SSLIOSessionStrategy noCertificateCheck() throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
+        return new SSLIOSessionStrategy(byPassCertificate(), NoopHostnameVerifier.INSTANCE);
+
+    }
+
+    private SSLContext byPassCertificate() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+        return new SSLContextBuilder()
+                .loadTrustMaterial(null, (x509Certificates, s) -> true)
+                .build();
     }
 
     private CloseableHttpAsyncClient createAsyncClient(RequestConfig clientConfig, PoolingNHttpClientConnectionManager manager) {
@@ -92,7 +162,7 @@ public class ClientBuilder {
                 .setDefaultCredentialsProvider(credentialsProvider)
                 .setConnectionManager(manager);
 
-        if(sslContext != null) {
+        if (sslContext != null) {
             syncBuilder.setSSLContext(sslContext);
         }
 
@@ -131,6 +201,11 @@ public class ClientBuilder {
 
     public ClientBuilder followRedirect(boolean followRedirect) {
         configBuilder.setRedirectsEnabled(followRedirect);
+        return this;
+    }
+
+    public ClientBuilder disableSSLCheck() {
+        this.sslCheckDisabled = true;
         return this;
     }
 
@@ -206,8 +281,19 @@ public class ClientBuilder {
      *
      * @param maxRoute Defines the connection limit for a connection pool per host. Default is 2.
      */
-    public ClientBuilder routeConcurrency(int maxRoute){
+    public ClientBuilder routeConcurrency(int maxRoute) {
         this.maxRoute = maxRoute;
+        return this;
+    }
+
+    /**
+     * Total time to live (TTL)  defines maximum life span of persistent connections regardless of their expiration setting.
+     * No persistent connection will be re-used past its TTL value.
+     *
+     * @return this config object
+     */
+    public ClientBuilder connectionTTL(long ttlMillis) {
+        this.connectionTTL = ttlMillis;
         return this;
     }
 
