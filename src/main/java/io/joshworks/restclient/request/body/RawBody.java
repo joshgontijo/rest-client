@@ -27,7 +27,7 @@ package io.joshworks.restclient.request.body;
 
 import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.request.BaseRequest;
-import io.joshworks.restclient.request.HttpRequest;
+import io.joshworks.restclient.request.Request;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ByteArrayEntity;
 
@@ -35,9 +35,9 @@ public class RawBody extends BaseRequest implements Body {
 
     private byte[] body;
 
-    public RawBody(HttpRequest httpRequest, ClientRequest config) {
+    public RawBody(Request request, ClientRequest config) {
         super(config);
-        super.httpRequest = httpRequest;
+        super.request = request;
     }
 
     public RawBody body(byte[] body) {

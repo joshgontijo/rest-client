@@ -27,7 +27,7 @@ package io.joshworks.restclient.request.body;
 
 import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.request.BaseRequest;
-import io.joshworks.restclient.request.HttpRequest;
+import io.joshworks.restclient.request.Request;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
@@ -40,9 +40,9 @@ public class MultipartBody extends BaseRequest implements Body {
 
     private final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 
-    public MultipartBody(HttpRequest httpRequest, ClientRequest config) {
+    public MultipartBody(Request request, ClientRequest config) {
         super(config);
-        super.httpRequest = httpRequest;
+        super.request = request;
     }
 
     public MultipartBody part(String name, String value) {

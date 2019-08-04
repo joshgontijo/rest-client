@@ -39,7 +39,7 @@ public class LargeFileIT {
 
     @Test
     public void asBinary() {
-        try (HttpResponse<InputStream> response = Unirest.get("http://localhost:9000/download").asBinary()) {
+        try (Response<InputStream> response = Unirest.get("http://localhost:9000/download").asBinary()) {
             System.out.println("Request sent");
             assertEquals(200, response.getStatus());
             assertEquals(STREAM_SIZE, TestUtils.streamSize(response.body()));
@@ -49,7 +49,7 @@ public class LargeFileIT {
     @Test
     public void multipart_sync_upload() {
         try {
-            HttpResponse<String> response = Unirest.post("http://localhost:9000/upload")
+            Response<String> response = Unirest.post("http://localhost:9000/upload")
                     .part("file", TestUtils.mockStream(STREAM_SIZE), "someFile.txt")
                     .asString();
 
@@ -64,11 +64,11 @@ public class LargeFileIT {
     @Test
     public void multipart_async_upload() throws Exception {
         try {
-            Future<HttpResponse<String>> futureResponse = Unirest.post("http://localhost:9000/upload")
+            Future<Response<String>> futureResponse = Unirest.post("http://localhost:9000/upload")
                     .part("file", TestUtils.mockStream(STREAM_SIZE), "someFile.txt")
                     .asStringAsync();
 
-            HttpResponse<String> response = futureResponse.get();
+            Response<String> response = futureResponse.get();
             assertEquals(200, response.getStatus());
             assertEquals(STREAM_SIZE, Long.parseLong(response.body()));
         } finally {

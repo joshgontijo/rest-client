@@ -31,7 +31,7 @@ import org.apache.http.client.methods.HttpRequestBase;
 import java.io.IOException;
 import java.io.InputStream;
 
-class HttpStreamResponse<T> extends HttpResponse<T> {
+class HttpStreamResponse<T> extends Response<T> {
 
     private final HttpRequestBase request;
 

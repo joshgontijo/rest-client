@@ -34,7 +34,7 @@ import io.joshworks.restclient.http.mapper.JsonMapper;
 import io.joshworks.restclient.http.mapper.ObjectMappers;
 import io.joshworks.restclient.http.utils.ClientStats;
 import io.joshworks.restclient.request.GetRequest;
-import io.joshworks.restclient.request.HttpRequest;
+import io.joshworks.restclient.request.Request;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHeaders;
@@ -59,7 +59,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -126,7 +125,7 @@ public class RestClientTest {
 
     @Test
     public void simpleGet() {
-        HttpResponse<String> response = client.get(BASE_URL + "/hello").asString();
+        Response<String> response = client.get(BASE_URL + "/hello").asString();
         assertEquals(200, response.getStatus());
         assertNotNull(response.body());
         assertFalse(response.body().isEmpty());
@@ -147,7 +146,7 @@ public class RestClientTest {
     @Test
     public void simplePost() {
         String message = "hello";
-        HttpResponse<String> response = client.post(BASE_URL + "/echoPlain").body(message).asString();
+        Response<String> response = client.post(BASE_URL + "/echoPlain").body(message).asString();
         assertEquals(200, response.getStatus());
         assertEquals(message, response.body());
     }
@@ -155,7 +154,7 @@ public class RestClientTest {
     @Test
     public void simplePut() {
         String message = "hello";
-        HttpResponse<String> response = client.put(BASE_URL + "/echoPlain").body(message).asString();
+        Response<String> response = client.put(BASE_URL + "/echoPlain").body(message).asString();
         assertEquals(200, response.getStatus());
         assertEquals(message, response.body());
     }
@@ -163,7 +162,7 @@ public class RestClientTest {
     @Test
     public void simpleDelete() {
         String message = "hello";
-        HttpResponse<String> response = client.delete(BASE_URL + "/echoPlain").body(message).asString();
+        Response<String> response = client.delete(BASE_URL + "/echoPlain").body(message).asString();
         assertEquals(200, response.getStatus());
         assertEquals(message, response.body());
     }
@@ -171,35 +170,35 @@ public class RestClientTest {
     @Test
     public void simpleOptions() {
         String message = "hello";
-        HttpResponse<String> response = client.options(BASE_URL + "/echoPlain").body(message).asString();
+        Response<String> response = client.options(BASE_URL + "/echoPlain").body(message).asString();
         assertEquals(200, response.getStatus());
         assertEquals(message, response.body());
     }
 
     @Test
     public void simpleHead() {
-        HttpResponse<String> response = client.head(BASE_URL + "/echoPlain").asString();
+        Response<String> response = client.head(BASE_URL + "/echoPlain").asString();
         assertEquals(200, response.getStatus());
         assertNull(response.body());
     }
 
     @Test
     public void nullBody() {
-        HttpResponse<String> response = client.head(BASE_URL + "/nullBody").asString();
+        Response<String> response = client.head(BASE_URL + "/nullBody").asString();
         assertEquals(200, response.getStatus());
         assertNull(response.body());
     }
 
     @Test
     public void queryParamUTF8() {
-        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString("param3", "こんにちは").asJson();
+        Response<Json> response = client.get(BASE_URL + "/echo").queryString("param3", "こんにちは").asJson();
         assertEquals(response.body().getObject().getJSONObject("queryParams").getJSONArray("param3").get(0).toString(), "こんにちは");
     }
 
     @Test
     public void postUTF8() {
         String value = "こんにちは";
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .field("param3", value)
                 .asJson();
 
@@ -209,7 +208,7 @@ public class RestClientTest {
     @Test
     public void postBinaryUTF8() throws Exception {
         String value = "こんにちは";
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .part("param3", value, "text/plain; charset=UTF-8")
                 .part("file", new File(getClass().getResource("/test").toURI()))
                 .asJson();
@@ -221,7 +220,7 @@ public class RestClientTest {
     @Test
     public void partWithType() throws Exception {
         String type = "text/plain; charset=UTF-8";
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .part("file", new File(getClass().getResource("/test").toURI()), type)
                 .asJson();
 
@@ -234,7 +233,7 @@ public class RestClientTest {
         String sourceString = "'\"@こんにちは-test-123";
         byte[] sentBytes = sourceString.getBytes(StandardCharsets.UTF_8);
 
-        HttpResponse<String> response = client.post(BASE_URL + "/echoBinary")
+        Response<String> response = client.post(BASE_URL + "/echoBinary")
                 .header("Content-type", "text/plain")
                 .body(sentBytes)
                 .asString();
@@ -243,21 +242,21 @@ public class RestClientTest {
 
     @Test
     public void redirect301() {
-        HttpResponse<String> response = client.get(BASE_URL + "/redirect301").asString();
+        Response<String> response = client.get(BASE_URL + "/redirect301").asString();
         assertEquals(200, response.getStatus());
         assertEquals("Hello", response.body());
     }
 
     @Test
     public void redirect302() {
-        HttpResponse<String> response = client.get(BASE_URL + "/redirect302").asString();
+        Response<String> response = client.get(BASE_URL + "/redirect302").asString();
         assertEquals(200, response.getStatus());
         assertEquals("Hello", response.body());
     }
 
     @Test
     public void redirect303() {
-        HttpResponse<String> response = client.get(BASE_URL + "/redirect303").asString();
+        Response<String> response = client.get(BASE_URL + "/redirect303").asString();
         assertEquals(200, response.getStatus());
         assertEquals("Hello", response.body());
     }
@@ -269,7 +268,7 @@ public class RestClientTest {
                 .baseUrl(BASE_URL)
                 .build()) {
 
-            HttpResponse<JsonNode> postResponse = customClient.get("/redirect301")
+            Response<Json> postResponse = customClient.get("/redirect301")
                     .header("accept", "application/json")
                     .header("Content-Type", "application/json")
                     .asJson();
@@ -281,7 +280,7 @@ public class RestClientTest {
     @Test
     public void customUserAgent() {
         String agent = "hello-world";
-        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").header("user-agent", agent).asJson();
+        Response<Json> response = client.get(BASE_URL + "/echo").header("user-agent", agent).asJson();
         assertEquals(agent, response.body().getObject().getJSONObject("headers").getJSONArray("user-agent").get(0));
 
         GetRequest getRequest = client.get("http");
@@ -293,21 +292,21 @@ public class RestClientTest {
     @Test
     public void getMultiple() {
         for (int i = 1; i <= 50; i++) {
-            HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo?try=" + i).asJson();
+            Response<Json> response = client.get(BASE_URL + "/echo?try=" + i).asJson();
             assertEquals(response.body().getObject().getJSONObject("queryParams").getJSONArray("try").get(0), String.valueOf(i));
         }
     }
 
     @Test
     public void getFields() {
-        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString("name", "mark").queryString("nick", "thefosk").asJson();
+        Response<Json> response = client.get(BASE_URL + "/echo").queryString("name", "mark").queryString("nick", "thefosk").asJson();
         assertEquals(response.body().getObject().getJSONObject("queryParams").getJSONArray("name").get(0), "mark");
         assertEquals(response.body().getObject().getJSONObject("queryParams").getJSONArray("nick").get(0), "thefosk");
     }
 
     @Test
     public void getFieldsEmailFormat() {
-        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString("email", "hello@hello.com").asJson();
+        Response<Json> response = client.get(BASE_URL + "/echo").queryString("email", "hello@hello.com").asJson();
         assertEquals("hello@hello.com", response.body().getObject().getJSONObject("queryParams").getJSONArray("email").get(0));
     }
 
@@ -315,19 +314,19 @@ public class RestClientTest {
     public void queryStringEncoding() {
         String testKey = "email2=someKey&email";
         String testValue = "hello@hello.com";
-        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").queryString(testKey, testValue).asJson();
+        Response<Json> response = client.get(BASE_URL + "/echo").queryString(testKey, testValue).asJson();
         assertEquals(testValue, response.body().getObject().getJSONObject("queryParams").getJSONArray(testKey).get(0));
     }
 
     @Test
     public void basicAuth() {
-        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo").basicAuth("user", "test").asJson();
+        Response<Json> response = client.get(BASE_URL + "/echo").basicAuth("user", "test").asJson();
         assertEquals("Basic dXNlcjp0ZXN0", response.body().getObject().getJSONObject("headers").getJSONArray("Authorization").get(0));
     }
 
     @Test
     public void asyncPost() throws Exception {
-        Future<HttpResponse<JsonNode>> future = client.post(BASE_URL + "/echoMultipart")
+        Future<Response<Json>> future = client.post(BASE_URL + "/echoMultipart")
                 .header("accept", "application/json")
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .field("param1", "value1")
@@ -336,14 +335,14 @@ public class RestClientTest {
 
 
         assertNotNull(future);
-        HttpResponse<JsonNode> jsonResponse = future.get();
+        Response<Json> jsonResponse = future.get();
 
         assertTrue(jsonResponse.getHeaders().size() > 0);
         assertTrue(jsonResponse.body().toString().length() > 0);
         assertFalse(jsonResponse.getRawBody() == null);
         assertEquals(200, jsonResponse.getStatus());
 
-        JsonNode json = jsonResponse.body();
+        Json json = jsonResponse.body();
         assertFalse(json.isArray());
         assertNotNull(json.getObject());
         assertNotNull(json.getArray());
@@ -358,7 +357,7 @@ public class RestClientTest {
                 .header("accept", "application/json")
                 .field("param1", "value1")
                 .field("param2", "bye")
-                .asJsonAsync(new Callback<JsonNode>() {
+                .asJsonAsync(new Callback<Json>() {
 
                     @Override
                     public void failed(Exception e) {
@@ -367,13 +366,13 @@ public class RestClientTest {
                     }
 
                     @Override
-                    public void completed(HttpResponse<JsonNode> jsonResponse) {
+                    public void completed(Response<Json> jsonResponse) {
                         assertTrue(jsonResponse.getHeaders().size() > 0);
                         assertTrue(jsonResponse.body().toString().length() > 0);
                         assertFalse(jsonResponse.getRawBody() == null);
                         assertEquals(200, jsonResponse.getStatus());
 
-                        JsonNode json = jsonResponse.body();
+                        Json json = jsonResponse.body();
                         assertFalse(json.isArray());
                         assertNotNull(json.getObject());
                         assertNotNull(json.getArray());
@@ -401,21 +400,21 @@ public class RestClientTest {
 
     @Test
     public void multipart() throws Exception {
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
                 .part("file", new File(getClass().getResource("/test").toURI()))
                 .asJson();
 
         validateBasicFormFields(response);
 
-        JsonNode json = response.body();
+        Json json = response.body();
         assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
     }
 
     @Test
     public void multipart_contentType_withPreviousValue() {
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .header(HttpHeaders.CONTENT_TYPE, "text/plain")
                 .part("name", "Mark")
                 .asJson();
@@ -425,7 +424,7 @@ public class RestClientTest {
 
     @Test
     public void formData_contentType() {
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .field("name", "Mark")
                 .asJson();
 
@@ -436,14 +435,14 @@ public class RestClientTest {
 
     @Test
     public void multipartContentType() throws Exception {
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
                 .part("file", new File(getClass().getResource("/test").toURI()), "text/plain")
                 .asJson();
 
         validateBasicFormFields(response);
 
-        JsonNode json = response.body();
+        Json json = response.body();
         assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains("text/plain"));
         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
     }
@@ -451,14 +450,14 @@ public class RestClientTest {
     @Test
     public void multipartContentType_withDefaultHeader() throws URISyntaxException {
         try (RestClient formClient = RestClient.builder().defaultHeader("Content-Type", MediaType.APPLICATION_JSON).build()) {
-            HttpResponse<JsonNode> response = formClient.post(BASE_URL + "/echoMultipart")
+            Response<Json> response = formClient.post(BASE_URL + "/echoMultipart")
                     .part("name", "Mark")
                     .part("file", new File(getClass().getResource("/test").toURI()), "text/plain")
                     .asJson();
 
             validateBasicFormFields(response);
 
-            JsonNode json = response.body();
+            Json json = response.body();
             JSONObject headers = json.getObject().getJSONObject("headers");
             assertTrue(headers.getJSONArray(HttpHeaders.CONTENT_TYPE).get(0).toString().contains(MediaType.MULTIPART_FORM_DATA));
             assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains("text/plain"));
@@ -469,11 +468,11 @@ public class RestClientTest {
     @Test
     public void urlFormEncoded_withDefaultHeader() {
         try (RestClient formClient = RestClient.builder().defaultHeader("Content-Type", MediaType.APPLICATION_JSON).build()) {
-            HttpResponse<JsonNode> response = formClient.post(BASE_URL + "/echoMultipart")
+            Response<Json> response = formClient.post(BASE_URL + "/echoMultipart")
                     .field("name", "Mark")
                     .asJson();
 
-            JsonNode json = response.body();
+            Json json = response.body();
             JSONObject headers = json.getObject().getJSONObject("headers");
             assertTrue(headers.getJSONArray(HttpHeaders.CONTENT_TYPE).get(0).toString().contains(MediaType.APPLICATION_FORM_URLENCODED));
             assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
@@ -483,25 +482,25 @@ public class RestClientTest {
 
     @Test
     public void multipartInputStreamContentType() throws Exception {
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
                 .part("file", new FileInputStream(new File(getClass().getResource("/test").toURI())), "test.txt")
                 .asJson();
 
         validateBasicFormFields(response);
 
-        JsonNode json = response.body();
+        Json json = response.body();
         assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains(ContentType.APPLICATION_OCTET_STREAM.getMimeType()));
         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
     }
 
-    private void validateBasicFormFields(HttpResponse<JsonNode> response) {
+    private void validateBasicFormFields(Response<Json> response) {
         assertEquals(200, response.getStatus());
         assertTrue(response.getHeaders().size() > 0);
         assertTrue(response.body().toString().length() > 0);
         assertFalse(response.getRawBody() == null);
 
-        JsonNode json = response.body();
+        Json json = response.body();
         assertFalse(json.isArray());
         assertNotNull(json.getObject());
         assertNotNull(json.getArray());
@@ -517,17 +516,17 @@ public class RestClientTest {
         client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
                 .part("file", new FileInputStream(new File(getClass().getResource("/test").toURI())), "test")
-                .asJsonAsync(new Callback<JsonNode>() {
+                .asJsonAsync(new Callback<Json>() {
 
                     public void failed(Exception e) {
                         e.printStackTrace();
                         fail(e.getMessage());
                     }
 
-                    public void completed(HttpResponse<JsonNode> response) {
+                    public void completed(Response<Json> response) {
                         validateBasicFormFields(response);
 
-                        JsonNode json = response.body();
+                        Json json = response.body();
                         assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains(ContentType.APPLICATION_OCTET_STREAM.getMimeType()));
                         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").get(0));
 
@@ -550,12 +549,12 @@ public class RestClientTest {
     @Test
     public void testMultipartByteContentType() throws Exception {
         final byte[] bytes = Files.readAllBytes(Paths.get(this.getClass().getResource("/test").toURI()));
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
                 .part("file", bytes, "test.txt")
                 .asJson();
 
-        JsonNode json = response.body();
+        Json json = response.body();
         assertTrue(json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("type").contains(ContentType.APPLICATION_OCTET_STREAM.getMimeType()));
         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
     }
@@ -571,17 +570,17 @@ public class RestClientTest {
         client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
                 .part("file", bytes, "test")
-                .asJsonAsync(new Callback<JsonNode>() {
+                .asJsonAsync(new Callback<Json>() {
 
                     public void failed(Exception e) {
                         e.printStackTrace();
                         fail();
                     }
 
-                    public void completed(HttpResponse<JsonNode> response) {
+                    public void completed(Response<Json> response) {
                         validateBasicFormFields(response);
 
-                        JsonNode json = response.body();
+                        Json json = response.body();
                         assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
                         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
 
@@ -623,15 +622,15 @@ public class RestClientTest {
         client.post(BASE_URL + "/echoMultipart")
                 .part("name", "Mark")
                 .part("file", new File(getClass().getResource("/test").toURI()))
-                .asJsonAsync(new Callback<JsonNode>() {
+                .asJsonAsync(new Callback<Json>() {
 
                     public void failed(Exception e) {
                         e.printStackTrace();
                         fail();
                     }
 
-                    public void completed(HttpResponse<JsonNode> response) {
-                        JsonNode json = response.body();
+                    public void completed(Response<Json> response) {
+                        Json json = response.body();
                         assertEquals("This is a test file", json.getObject().getJSONObject("body").getJSONArray("file").getJSONObject(0).getString("content"));
                         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
 
@@ -653,7 +652,7 @@ public class RestClientTest {
 
     @Test
     public void contentTypeSimple() {
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoHeaders")
+        Response<Json> response = client.post(BASE_URL + "/echoHeaders")
                 .contentType("json")
                 .body("{\"field\": \"value\"}")
                 .asJson();
@@ -670,7 +669,7 @@ public class RestClientTest {
     @Test
     public void gzip() {
         String value = "return this as GZIP";
-        HttpResponse<String> response = client.post(BASE_URL + "/echoPlain")
+        Response<String> response = client.post(BASE_URL + "/echoPlain")
                 .body(value)
                 .asString();
 
@@ -684,7 +683,7 @@ public class RestClientTest {
     @Test
     public void gzipAsync() throws Exception {
         String value = "return this as GZIP";
-        HttpResponse<String> response = client.post(BASE_URL + "/echoPlain")
+        Response<String> response = client.post(BASE_URL + "/echoPlain")
                 .body(value)
                 .asStringAsync()
                 .get();
@@ -706,13 +705,13 @@ public class RestClientTest {
                 .build()) {
 
 
-            HttpResponse<JsonNode> jsonResponse = customClient.post(BASE_URL + "/echoHeaders").asJson();
+            Response<Json> jsonResponse = customClient.post(BASE_URL + "/echoHeaders").asJson();
             assertTrue(jsonResponse.getHeaders().size() > 0);
             assertTrue(jsonResponse.body().toString().length() > 0);
             assertFalse(jsonResponse.getRawBody() == null);
             assertEquals(200, jsonResponse.getStatus());
 
-            JsonNode json = jsonResponse.body();
+            Json json = jsonResponse.body();
             assertFalse(json.isArray());
             assertTrue(jsonResponse.body().getObject().has("X-Custom-Header"));
             assertEquals(customHeaderVal, json.getObject().getJSONArray("X-Custom-Header").get(0));
@@ -774,7 +773,7 @@ public class RestClientTest {
     @Test
     public void pathParameters() {
         String value = "Josh";
-        HttpResponse<String> response = client.get(BASE_URL + "/echo/{name}")
+        Response<String> response = client.get(BASE_URL + "/echo/{name}")
                 .routeParam("name", value)
                 .asString();
 
@@ -785,7 +784,7 @@ public class RestClientTest {
     @Test
     public void pathParametersEncodedValue() {
         String value = "A%24A%26A%25";
-        HttpResponse<String> response = client.get(BASE_URL + "/echo/{name}")
+        Response<String> response = client.get(BASE_URL + "/echo/{name}")
                 .routeParam("name", value)
                 .asString();
 
@@ -796,7 +795,7 @@ public class RestClientTest {
     @Test
     public void pathParametersEncodeValue() {
         String value = "A%A&A$";
-        HttpResponse<String> response = client.get(BASE_URL + "/echo/{name}")
+        Response<String> response = client.get(BASE_URL + "/echo/{name}")
                 .routeParam("name", value)
                 .asString();
 
@@ -808,7 +807,7 @@ public class RestClientTest {
     public void pathParametersEncodeValueWithQuery() {
         String pathValue = "A%A&A$";
         String queryValue = "someValue";
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart/{pathParam}")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart/{pathParam}")
                 .routeParam("pathParam", pathValue)
                 .queryString("q", queryValue)
                 .asJson();
@@ -823,7 +822,7 @@ public class RestClientTest {
         String pathParamVal = "Josh";
         String queryVal = "QueryVal";
         String formParamVal = "FormVal";
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart/{pathParam}")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart/{pathParam}")
                 .queryString("q", queryVal)
                 .routeParam("pathParam", pathParamVal)
                 .field("formParam", formParamVal)
@@ -890,14 +889,14 @@ public class RestClientTest {
                 .header("accept", "application/json")
                 .header("Content-Type", "application/json")
                 .body("{\"hello\":\"world\"}")
-                .asJsonAsync(new Callback<JsonNode>() {
+                .asJsonAsync(new Callback<Json>() {
 
                     public void failed(Exception e) {
                         fail();
                     }
 
-                    public void completed(HttpResponse<JsonNode> response) {
-                        JsonNode json = response.body();
+                    public void completed(Response<Json> response) {
+                        Json json = response.body();
                         assertEquals("world", json.getObject().getJSONObject("body").getString("hello"));
                         assertEquals("application/json", json.getObject().getJSONObject("headers").getJSONArray("Content-Type").get(0));
 
@@ -925,14 +924,14 @@ public class RestClientTest {
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .field("name", "Mark")
                 .field("hello", "world")
-                .asJsonAsync(new Callback<JsonNode>() {
+                .asJsonAsync(new Callback<Json>() {
 
                     public void failed(Exception e) {
                         fail();
                     }
 
-                    public void completed(HttpResponse<JsonNode> response) {
-                        JsonNode json = response.body();
+                    public void completed(Response<Json> response) {
+                        Json json = response.body();
                         assertEquals("Mark", json.getObject().getJSONObject("body").getJSONArray("name").getString(0));
                         assertEquals("world", json.getObject().getJSONObject("body").getJSONArray("hello").getString(0));
 
@@ -955,7 +954,7 @@ public class RestClientTest {
 
     @Test
     public void getQuerystringArray() {
-        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo")
+        Response<Json> response = client.get(BASE_URL + "/echo")
                 .queryString("name", "Mark")
                 .queryString("name", "Tom")
                 .asJson();
@@ -969,7 +968,7 @@ public class RestClientTest {
 
     @Test
     public void postMultipleFiles() throws Exception {
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .part("param3", "wot")
                 .part("file1", new File(getClass().getResource("/test").toURI()))
                 .part("file2", new File(getClass().getResource("/test").toURI()))
@@ -987,7 +986,7 @@ public class RestClientTest {
 
     @Test
     public void getArray() {
-        HttpResponse<JsonNode> response = client.get(BASE_URL + "/echo")
+        Response<Json> response = client.get(BASE_URL + "/echo")
                 .queryString("name", Arrays.asList("Mark", "Tom"))
                 .asJson();
 
@@ -1000,7 +999,7 @@ public class RestClientTest {
 
     @Test
     public void postArray() {
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .field("name", "Mark")
                 .field("name", "Tom")
                 .asJson();
@@ -1014,40 +1013,31 @@ public class RestClientTest {
     }
 
     @Test
-    public void asSetOf() {
-
-        Set<String> values = new HashSet<>();
-        values.add("a");
-        values.add("b");
-
-        HttpResponse<Set<String>> response = client.post(BASE_URL + "/echoArray")
-                .contentType(MediaType.APPLICATION_JSON_TYPE)
-                .body(values)
-                .asSetOf(String.class);
-
-        assertEquals(200, response.getStatus());
-        assertEquals(values.size(), response.body().size());
-    }
-
-    @Test
     public void asListOf() {
 
-        List<String> values = new ArrayList<>();
-        values.add("a");
-        values.add("b");
+        List<TestData> values = new ArrayList<>();
+        values.add(new TestData("a"));
+        values.add(new TestData("b"));
 
-        HttpResponse<List<String>> response = client.post(BASE_URL + "/echoArray")
+        Response<Json> response = client.post(BASE_URL + "/echoArray")
                 .contentType(MediaType.APPLICATION_JSON_TYPE)
                 .body(values)
-                .asListOf(String.class);
+                .asJson();
 
         assertEquals(200, response.getStatus());
-        assertEquals(values.size(), response.body().size());
+
+        List<TestData> items = response.body().asListOf(TestData.class);
+        assertEquals(values.size(), items.size());
+
+        for (TestData item : items) {//tests ClassCastException
+            assertNotNull(item);
+        }
+
     }
 
     @Test
     public void formArrayValue() {
-        HttpResponse<JsonNode> response = client.post(BASE_URL + "/echoMultipart")
+        Response<Json> response = client.post(BASE_URL + "/echoMultipart")
                 .field("name", Arrays.asList("Mark", "Tom"))
                 .asJson();
 
@@ -1068,7 +1058,7 @@ public class RestClientTest {
         assertEquals("Marco", request.getHeaders().get("NAme").get(0));
         assertEquals("Marco", request.getHeaders().get("Name").get(0));
 
-        HttpResponse<JsonNode> response = request.asJson();
+        Response<Json> response = request.asJson();
         JSONObject headers = response.body().getObject();
         assertEquals("Marco", headers.getJSONArray("Name").getString(0));
 
@@ -1172,7 +1162,7 @@ public class RestClientTest {
     @Test
     public void defaultObjectMapper() {
         TestData testData = new TestData("yolo");
-        HttpResponse<TestData> getResponse = client.post(BASE_URL + "/echoJson")
+        Response<TestData> getResponse = client.post(BASE_URL + "/echoJson")
                 .header("accept", "application/json")
                 .header("Content-Type", "application/json")
                 .body(testData).asObject(TestData.class);
@@ -1186,7 +1176,7 @@ public class RestClientTest {
     public void binaryCloseConnection() {
         String sourceString = "AAAAAAAAAAAAA";
 
-        try (HttpResponse<InputStream> response = client.post(BASE_URL + "/echoBinary")
+        try (Response<InputStream> response = client.post(BASE_URL + "/echoBinary")
                 .header("Content-type", "text/plain")
                 .body(sourceString.getBytes(StandardCharsets.UTF_8))
                 .asBinary()) {
@@ -1208,7 +1198,7 @@ public class RestClientTest {
         ObjectMappers.register(MediaType.valueOf(TestServer.contentType), new JsonMapper());
 
         TestData testData = new TestData("yolo");
-        HttpResponse<TestData> response = client.post(BASE_URL + "/echoCustomType")
+        Response<TestData> response = client.post(BASE_URL + "/echoCustomType")
                 .header("accept", TestServer.contentType)
                 .header("Content-Type", TestServer.contentType)
                 .body(testData).asObject(TestData.class);
@@ -1221,9 +1211,9 @@ public class RestClientTest {
     @Test
     public void testPostProvidesSortedParams() throws Exception {
         // Verify that fields are encoded into the body in sorted order.
-        HttpRequest httpRequest = client.post("test").field("z", "Z").field("y", "Y").field("x", "X").getHttpRequest();
+        Request request = client.post("test").field("z", "Z").field("y", "Y").field("x", "X").getRequest();
 
-        InputStream content = httpRequest.getBody().getEntity().getContent();
+        InputStream content = request.body().getEntity().getContent();
         String body = IOUtils.toString(content, "UTF-8");
         assertEquals("x=X&y=Y&z=Z", body);
     }
@@ -1246,7 +1236,7 @@ public class RestClientTest {
                 .urlTransformer((url) -> BASE_URL + "/echo")
                 .build();
 
-        HttpResponse<String> response = client.get("/get").asString();
+        Response<String> response = client.get("/get").asString();
         assertEquals(200, response.getStatus());
     }
 
@@ -1255,7 +1245,7 @@ public class RestClientTest {
         try (RestClient customClient = RestClient.builder()
                 .baseUrl(BASE_URL + "/echo")
                 .build()) {
-            HttpResponse<JsonNode> postResponse = customClient.get("/get")
+            Response<Json> postResponse = customClient.get("/get")
                     .header("accept", "application/json")
                     .header("Content-Type", "application/json")
                     .asJson();
@@ -1269,7 +1259,7 @@ public class RestClientTest {
         String value = "COOKIE-VALUE-A";
         String key = "COOKIEA";
         try (RestClient cookieClient = RestClient.builder().build()) {
-            HttpResponse<String> response = cookieClient.get(BASE_URL + "/set-cookie")
+            Response<String> response = cookieClient.get(BASE_URL + "/set-cookie")
                     .queryString(key, value)
                     .asString();
 
@@ -1290,7 +1280,7 @@ public class RestClientTest {
     @Test
     public void withHttpBuilder() {
         try (RestClient client = RestClient.with(HttpClientBuilder.create())) {
-            HttpResponse<String> response = client.get(BASE_URL + "/hello").asString();
+            Response<String> response = client.get(BASE_URL + "/hello").asString();
             assertEquals(200, response.getStatus());
             assertNotNull(response.body());
         }
@@ -1322,7 +1312,7 @@ public class RestClientTest {
     @Test
     public void null_response_body() {
         try (RestClient client = RestClient.builder().defaultHeader("Content-Type", "application/json").build()) {
-            HttpResponse<Map> response = client.get(BASE_URL + "/null").asObject(Map.class);
+            Response<Map> response = client.get(BASE_URL + "/null").asObject(Map.class);
             assertNull(response.body());
         }
     }
@@ -1331,14 +1321,14 @@ public class RestClientTest {
     public void defaultHeadersWithNullBody() {
 
         try (RestClient client = RestClient.builder().defaultHeader("Content-Type", "application/json").build()) {
-            HttpResponse<Map> response = client.get(BASE_URL + "/null").asObject(Map.class);
+            Response<Map> response = client.get(BASE_URL + "/null").asObject(Map.class);
             assertNull(response.body());
         }
     }
 
     @Test
     public void utf8Encoding() {
-        HttpResponse<JsonNode> response = client.get(BASE_URL + "/utf8Json").asJson();
+        Response<Json> response = client.get(BASE_URL + "/utf8Json").asJson();
         assertEquals(200, response.getStatus());
         Map<String, Object> body = response.bodyAs(Map.class);
         System.out.println(body);

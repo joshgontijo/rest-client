@@ -1,15 +1,15 @@
 package io.joshworks.restclient.request.body;
 
-import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.request.BaseRequest;
-import io.joshworks.restclient.request.HttpRequest;
+import io.joshworks.restclient.request.Request;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.message.BasicNameValuePair;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -25,9 +25,9 @@ public class FormEncodedBody extends BaseRequest implements Body {
 
     private Map<String, List<Object>> parameters = new LinkedHashMap<String, List<Object>>();
 
-    public FormEncodedBody(HttpRequest httpRequest, ClientRequest config) {
+    public FormEncodedBody(Request request, ClientRequest config) {
         super(config);
-        super.httpRequest = httpRequest;
+        super.request = request;
     }
 
     public FormEncodedBody field(String name, String value) {
@@ -104,7 +104,7 @@ public class FormEncodedBody extends BaseRequest implements Body {
     @Override
     public HttpEntity getEntity() {
         try {
-            return new UrlEncodedFormEntity(getList(parameters), Constants.UTF_8);
+            return new UrlEncodedFormEntity(getList(parameters), StandardCharsets.UTF_8.name());
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }

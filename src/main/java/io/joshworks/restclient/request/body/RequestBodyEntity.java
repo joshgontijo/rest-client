@@ -25,21 +25,22 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.request.body;
 
-import io.joshworks.restclient.Constants;
-import io.joshworks.restclient.http.JsonNode;
 import io.joshworks.restclient.http.ClientRequest;
+import io.joshworks.restclient.http.Json;
 import io.joshworks.restclient.request.BaseRequest;
-import io.joshworks.restclient.request.HttpRequest;
+import io.joshworks.restclient.request.Request;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.StringEntity;
+
+import java.nio.charset.StandardCharsets;
 
 public class RequestBodyEntity extends BaseRequest implements Body {
 
     private Object body;
 
-    public RequestBodyEntity(HttpRequest httpRequest, ClientRequest config) {
+    public RequestBodyEntity(Request request, ClientRequest config) {
         super(config);
-        super.httpRequest = httpRequest;
+        super.request = request;
     }
 
     public RequestBodyEntity body(String body) {
@@ -47,7 +48,7 @@ public class RequestBodyEntity extends BaseRequest implements Body {
         return this;
     }
 
-    public RequestBodyEntity body(JsonNode body) {
+    public RequestBodyEntity body(Json body) {
         this.body = body.toString();
         return this;
     }
@@ -57,7 +58,7 @@ public class RequestBodyEntity extends BaseRequest implements Body {
     }
 
     public HttpEntity getEntity() {
-        return new StringEntity(body.toString(), Constants.UTF_8);
+        return new StringEntity(body.toString(), StandardCharsets.UTF_8.name());
     }
 
     @Override

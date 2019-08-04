@@ -37,6 +37,7 @@ import org.apache.http.HttpHeaders;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -47,7 +48,7 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class HttpRequest extends BaseRequest {
+public class Request extends BaseRequest {
 
     private static final MimeMappings mappings = MimeMappings.builder().build();
 
@@ -56,15 +57,15 @@ public class HttpRequest extends BaseRequest {
     private Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
     private HttpMethod httpMethod;
 
-    public HttpRequest(ClientRequest clientRequest) {
+    public Request(ClientRequest clientRequest) {
         super(clientRequest);
         this.url = clientRequest.url;
         this.httpMethod = clientRequest.httpMethod;
-        super.httpRequest = this;
+        super.request = this;
 
     }
 
-    public HttpRequest routeParam(String name, String value) {
+    public Request routeParam(String name, String value) {
         Matcher matcher = Pattern.compile("\\{" + name + "\\}").matcher(url);
         int count = 0;
         while (matcher.find()) {
@@ -77,24 +78,24 @@ public class HttpRequest extends BaseRequest {
         return this;
     }
 
-    public HttpRequest basicAuth(String username, String password) {
+    public Request basicAuth(String username, String password) {
         header(HttpHeaders.AUTHORIZATION, "Basic " + Base64Coder.encodeString(username + ":" + password));
         return this;
     }
 
-    public HttpRequest header(String name, Long value) {
+    public Request header(String name, Long value) {
         return header(name, value == null ? null : String.valueOf(value));
     }
 
-    public HttpRequest header(String name, Integer value) {
+    public Request header(String name, Integer value) {
         return header(name, value == null ? null : String.valueOf(value));
     }
 
-    public HttpRequest header(String name, Double value) {
+    public Request header(String name, Double value) {
         return header(name, value == null ? null : String.valueOf(value));
     }
 
-    public HttpRequest header(String name, String value) {
+    public Request header(String name, String value) {
         List<String> list = this.headers.get(name.trim());
         if (list == null) {
             list = new ArrayList<>();
@@ -104,14 +105,14 @@ public class HttpRequest extends BaseRequest {
         return this;
     }
 
-    public HttpRequest contentType(MediaType contentType) {
+    public Request contentType(MediaType contentType) {
         if (contentType == null) {
             return this;
         }
         return this.contentType(contentType.toString());
     }
 
-    public HttpRequest contentType(String contentType) {
+    public Request contentType(String contentType) {
         if (contentType == null || contentType.isEmpty()) {
             return this;
         }
@@ -126,7 +127,7 @@ public class HttpRequest extends BaseRequest {
         return this;
     }
 
-    public HttpRequest headers(Map<String, String> headers) {
+    public Request headers(Map<String, String> headers) {
         if (headers != null) {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 header(entry.getKey(), entry.getValue());
@@ -135,14 +136,14 @@ public class HttpRequest extends BaseRequest {
         return this;
     }
 
-    public HttpRequest queryString(String name, Collection<?> value) {
+    public Request queryString(String name, Collection<?> value) {
         for (Object cur : value) {
             queryString(name, cur);
         }
         return this;
     }
 
-    public HttpRequest queryString(String name, Object value) {
+    public Request queryString(String name, Object value) {
         StringBuilder queryString = new StringBuilder();
         if (this.url.contains(Constants.QUESTION_MARK)) {
             queryString.append(Constants.AMPERSAND);
@@ -151,9 +152,9 @@ public class HttpRequest extends BaseRequest {
         }
         try {
             queryString
-                    .append(URLEncoder.encode(name, Constants.UTF_8))
+                    .append(URLEncoder.encode(name, StandardCharsets.UTF_8.name()))
                     .append(Constants.EQUALS)
-                    .append(URLEncoder.encode(value == null ? "" : value.toString(), Constants.UTF_8));
+                    .append(URLEncoder.encode(value == null ? "" : value.toString(), StandardCharsets.UTF_8.name()));
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
@@ -161,7 +162,7 @@ public class HttpRequest extends BaseRequest {
         return this;
     }
 
-    public HttpRequest queryString(Map<String, Object> parameters) {
+    public Request queryString(Map<String, Object> parameters) {
         if (parameters != null) {
             for (Entry<String, Object> param : parameters.entrySet()) {
                 if (param.getValue() instanceof String || param.getValue() instanceof Number || param.getValue() instanceof Boolean) {
@@ -188,7 +189,7 @@ public class HttpRequest extends BaseRequest {
         return headers;
     }
 
-    public Body getBody() {
+    public Body body() {
         return body;
     }
 

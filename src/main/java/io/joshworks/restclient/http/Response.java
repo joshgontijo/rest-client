@@ -25,7 +25,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.http;
 
-import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.exceptions.RestClientException;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.http.mapper.ObjectMappers;
@@ -41,11 +40,12 @@ import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
-public class HttpResponse<T> implements Closeable {
+public class Response<T> implements Closeable {
 
     private final int statusCode;
     private final String statusText;
@@ -54,7 +54,7 @@ public class HttpResponse<T> implements Closeable {
     private final Class<T> responseClass;
     private byte[] cached;
 
-    HttpResponse(org.apache.http.HttpResponse response, Class<T> responseClass) {
+    Response(org.apache.http.HttpResponse response, Class<T> responseClass) {
         this.headers = responseHeaders(response);
         this.rawBody = consumeBody(response);
         this.responseClass = responseClass;
@@ -69,11 +69,11 @@ public class HttpResponse<T> implements Closeable {
         }
     }
 
-    public static <T> HttpResponse<T> create(HttpRequestBase request, org.apache.http.HttpResponse response, Class<T> responseClass) {
+    public static <T> Response<T> create(HttpRequestBase request, org.apache.http.HttpResponse response, Class<T> responseClass) {
         if (responseClass == InputStream.class) {
             return new HttpStreamResponse<>(response, responseClass, request);
         }
-        return new HttpResponse<>(response, responseClass);
+        return new Response<>(response, responseClass);
     }
 
 
@@ -166,8 +166,8 @@ public class HttpResponse<T> implements Closeable {
 
         String bodyString = readBodyAsString();
 
-        if (JsonNode.class.equals(type)) {
-            return (T) new JsonNode(bodyString);
+        if (Json.class.equals(type)) {
+            return (T) new Json(bodyString);
         } else if (String.class.equals(type)) {
             return (T) bodyString;
         } else {
@@ -194,7 +194,7 @@ public class HttpResponse<T> implements Closeable {
     }
 
     private String getCharset() {
-        String charset = Constants.UTF_8;
+        String charset = StandardCharsets.UTF_8.name();
 
         String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
         if (contentType != null) {

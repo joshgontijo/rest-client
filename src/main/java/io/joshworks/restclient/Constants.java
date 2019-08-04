@@ -5,7 +5,6 @@ package io.joshworks.restclient;
  */
 public class Constants {
 
-    public static final String UTF_8 = "UTF-8";
     public static final String QUESTION_MARK = "?";
     public static final String AMPERSAND = "&";
     public static final String EQUALS = "=";

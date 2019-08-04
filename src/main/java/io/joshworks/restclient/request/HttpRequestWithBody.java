@@ -26,7 +26,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.joshworks.restclient.request;
 
 import io.joshworks.restclient.http.ClientRequest;
-import io.joshworks.restclient.http.JsonNode;
+import io.joshworks.restclient.http.Json;
 import io.joshworks.restclient.http.MediaType;
 import io.joshworks.restclient.http.mapper.ObjectMapper;
 import io.joshworks.restclient.http.mapper.ObjectMappers;
@@ -42,7 +42,7 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
 
-public class HttpRequestWithBody extends HttpRequest {
+public class HttpRequestWithBody extends Request {
 
     private final ClientRequest config;
 
@@ -252,7 +252,7 @@ public class HttpRequestWithBody extends HttpRequest {
         return partBody;
     }
 
-    public RequestBodyEntity body(JsonNode body) {
+    public RequestBodyEntity body(Json body) {
         return body(body.toString());
     }
 

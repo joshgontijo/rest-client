@@ -25,19 +25,32 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.http;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.joshworks.restclient.http.exceptions.JsonParsingException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class JsonNode {
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Json {
+
+    private static Gson gson = new Gson();
 
     private JSONObject jsonObject;
     private JSONArray jsonArray;
+    private final String json;
 
     private boolean array;
 
-    public JsonNode(String json) {
+    public Json(String json) {
+        this.json = json;
         if (json == null || "".equals(json.trim())) {
             jsonObject = new JSONObject();
         } else {
@@ -72,6 +85,28 @@ public class JsonNode {
         return this.array;
     }
 
+    public <T> T as(Class<T> type) {
+        if (json == null) {
+            return null;
+        }
+        return gson.fromJson(json, type);
+    }
+
+    public <T> List<T> asListOf(Class<T> type) {
+        if (json == null) {
+            return new ArrayList<>();
+        }
+        return gson.fromJson(json, new TypedList<>(type));
+    }
+
+    public Map<String, Object> asMap() {
+        if (json == null) {
+            return new HashMap<>();
+        }
+        return gson.fromJson(json, new TypeToken<Map<String, Object>>() {
+        }.getType());
+    }
+
     @Override
     public String toString() {
         if (isArray()) {
@@ -83,4 +118,28 @@ public class JsonNode {
             return "";
         return jsonObject.toString();
     }
+
+    public static class TypedList<T> implements ParameterizedType {
+        private Class<?> wrapped;
+
+        public TypedList(Class<T> wrapper) {
+            this.wrapped = wrapper;
+        }
+
+        @Override
+        public Type[] getActualTypeArguments() {
+            return new Type[]{wrapped};
+        }
+
+        @Override
+        public Type getRawType() {
+            return List.class;
+        }
+
+        @Override
+        public Type getOwnerType() {
+            return null;
+        }
+    }
+
 }
