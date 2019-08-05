@@ -48,7 +48,7 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Request extends BaseRequest {
+public class HttpRequest extends BaseRequest {
 
     private static final MimeMappings mappings = MimeMappings.builder().build();
 
@@ -57,15 +57,15 @@ public class Request extends BaseRequest {
     private Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
     private HttpMethod httpMethod;
 
-    public Request(ClientRequest clientRequest) {
+    public HttpRequest(ClientRequest clientRequest) {
         super(clientRequest);
         this.url = clientRequest.url;
         this.httpMethod = clientRequest.httpMethod;
-        super.request = this;
+        super.httpRequest = this;
 
     }
 
-    public Request routeParam(String name, String value) {
+    public HttpRequest routeParam(String name, String value) {
         Matcher matcher = Pattern.compile("\\{" + name + "\\}").matcher(url);
         int count = 0;
         while (matcher.find()) {
@@ -78,24 +78,24 @@ public class Request extends BaseRequest {
         return this;
     }
 
-    public Request basicAuth(String username, String password) {
+    public HttpRequest basicAuth(String username, String password) {
         header(HttpHeaders.AUTHORIZATION, "Basic " + Base64Coder.encodeString(username + ":" + password));
         return this;
     }
 
-    public Request header(String name, Long value) {
+    public HttpRequest header(String name, Long value) {
         return header(name, value == null ? null : String.valueOf(value));
     }
 
-    public Request header(String name, Integer value) {
+    public HttpRequest header(String name, Integer value) {
         return header(name, value == null ? null : String.valueOf(value));
     }
 
-    public Request header(String name, Double value) {
+    public HttpRequest header(String name, Double value) {
         return header(name, value == null ? null : String.valueOf(value));
     }
 
-    public Request header(String name, String value) {
+    public HttpRequest header(String name, String value) {
         List<String> list = this.headers.get(name.trim());
         if (list == null) {
             list = new ArrayList<>();
@@ -105,14 +105,14 @@ public class Request extends BaseRequest {
         return this;
     }
 
-    public Request contentType(MediaType contentType) {
+    public HttpRequest contentType(MediaType contentType) {
         if (contentType == null) {
             return this;
         }
         return this.contentType(contentType.toString());
     }
 
-    public Request contentType(String contentType) {
+    public HttpRequest contentType(String contentType) {
         if (contentType == null || contentType.isEmpty()) {
             return this;
         }
@@ -127,7 +127,7 @@ public class Request extends BaseRequest {
         return this;
     }
 
-    public Request headers(Map<String, String> headers) {
+    public HttpRequest headers(Map<String, String> headers) {
         if (headers != null) {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 header(entry.getKey(), entry.getValue());
@@ -136,14 +136,14 @@ public class Request extends BaseRequest {
         return this;
     }
 
-    public Request queryString(String name, Collection<?> value) {
+    public HttpRequest queryString(String name, Collection<?> value) {
         for (Object cur : value) {
             queryString(name, cur);
         }
         return this;
     }
 
-    public Request queryString(String name, Object value) {
+    public HttpRequest queryString(String name, Object value) {
         StringBuilder queryString = new StringBuilder();
         if (this.url.contains(Constants.QUESTION_MARK)) {
             queryString.append(Constants.AMPERSAND);
@@ -162,7 +162,7 @@ public class Request extends BaseRequest {
         return this;
     }
 
-    public Request queryString(Map<String, Object> parameters) {
+    public HttpRequest queryString(Map<String, Object> parameters) {
         if (parameters != null) {
             for (Entry<String, Object> param : parameters.entrySet()) {
                 if (param.getValue() instanceof String || param.getValue() instanceof Number || param.getValue() instanceof Boolean) {

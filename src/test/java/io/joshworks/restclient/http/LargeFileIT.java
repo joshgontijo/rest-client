@@ -39,22 +39,22 @@ public class LargeFileIT {
 
     @Test
     public void asBinary() {
-        try (Response<InputStream> response = Unirest.get("http://localhost:9000/download").asBinary()) {
+        try (HttpResponse<InputStream> httpResponse = Unirest.get("http://localhost:9000/download").asBinary()) {
             System.out.println("Request sent");
-            assertEquals(200, response.getStatus());
-            assertEquals(STREAM_SIZE, TestUtils.streamSize(response.body()));
+            assertEquals(200, httpResponse.getStatus());
+            assertEquals(STREAM_SIZE, TestUtils.streamSize(httpResponse.body()));
         }
     }
 
     @Test
     public void multipart_sync_upload() {
         try {
-            Response<String> response = Unirest.post("http://localhost:9000/upload")
+            HttpResponse<String> httpResponse = Unirest.post("http://localhost:9000/upload")
                     .part("file", TestUtils.mockStream(STREAM_SIZE), "someFile.txt")
                     .asString();
 
-            assertEquals(200, response.getStatus());
-            assertEquals(STREAM_SIZE, Long.parseLong(response.body()));
+            assertEquals(200, httpResponse.getStatus());
+            assertEquals(STREAM_SIZE, Long.parseLong(httpResponse.body()));
 
         } finally {
             TestUtils.deleteBigFile();
@@ -64,13 +64,13 @@ public class LargeFileIT {
     @Test
     public void multipart_async_upload() throws Exception {
         try {
-            Future<Response<String>> futureResponse = Unirest.post("http://localhost:9000/upload")
+            Future<HttpResponse<String>> futureResponse = Unirest.post("http://localhost:9000/upload")
                     .part("file", TestUtils.mockStream(STREAM_SIZE), "someFile.txt")
                     .asStringAsync();
 
-            Response<String> response = futureResponse.get();
-            assertEquals(200, response.getStatus());
-            assertEquals(STREAM_SIZE, Long.parseLong(response.body()));
+            HttpResponse<String> httpResponse = futureResponse.get();
+            assertEquals(200, httpResponse.getStatus());
+            assertEquals(STREAM_SIZE, Long.parseLong(httpResponse.body()));
         } finally {
             TestUtils.deleteBigFile();
         }

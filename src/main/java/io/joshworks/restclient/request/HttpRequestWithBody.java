@@ -42,7 +42,7 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
 
-public class HttpRequestWithBody extends Request {
+public class HttpRequestWithBody extends HttpRequest {
 
     private final ClientRequest config;
 

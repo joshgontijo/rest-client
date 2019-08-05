@@ -2,7 +2,7 @@ package io.joshworks.restclient.request.body;
 
 import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.request.BaseRequest;
-import io.joshworks.restclient.request.Request;
+import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -25,9 +25,9 @@ public class FormEncodedBody extends BaseRequest implements Body {
 
     private Map<String, List<Object>> parameters = new LinkedHashMap<String, List<Object>>();
 
-    public FormEncodedBody(Request request, ClientRequest config) {
+    public FormEncodedBody(HttpRequest httpRequest, ClientRequest config) {
         super(config);
-        super.request = request;
+        super.httpRequest = httpRequest;
     }
 
     public FormEncodedBody field(String name, String value) {

@@ -31,7 +31,7 @@ import io.joshworks.restclient.http.MediaType;
 import java.util.Collection;
 import java.util.Map;
 
-public class GetRequest extends Request {
+public class GetRequest extends HttpRequest {
 
     public GetRequest(ClientRequest config) {
         super(config);

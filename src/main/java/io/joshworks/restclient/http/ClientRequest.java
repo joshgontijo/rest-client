@@ -3,7 +3,7 @@ package io.joshworks.restclient.http;
 import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.async.Callback;
 import io.joshworks.restclient.http.exceptions.RestClientException;
-import io.joshworks.restclient.request.Request;
+import io.joshworks.restclient.request.HttpRequest;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
@@ -66,7 +66,7 @@ public class ClientRequest {
             }
 
             public void completed(org.apache.http.HttpResponse arg0) {
-                callback.completed(new Response<>(arg0, responseClass));
+                callback.completed(new HttpResponse<>(arg0, responseClass));
             }
 
             public void failed(Exception arg0) {
@@ -76,9 +76,9 @@ public class ClientRequest {
         };
     }
 
-    public <T> CompletableFuture<Response<T>> requestAsync(Request request, final Class<T> responseClass) {
+    public <T> CompletableFuture<HttpResponse<T>> requestAsync(HttpRequest httpRequest, final Class<T> responseClass) {
 
-        HttpUriRequest requestObj = prepareRequest(request, true);
+        HttpUriRequest requestObj = prepareRequest(httpRequest, true);
 
         if (asyncClient == null) {
             throw new RestClientException("Async client not configured");
@@ -88,11 +88,11 @@ public class ClientRequest {
             asyncClient.start();
         }
 
-        CompletableFuture<Response<T>> completableFuture = new CompletableFuture<>();
+        CompletableFuture<HttpResponse<T>> completableFuture = new CompletableFuture<>();
         asyncClient.execute(requestObj, prepareCallback(responseClass, new Callback<T>() {
             @Override
-            public void completed(Response<T> response) {
-                completableFuture.complete(response);
+            public void completed(HttpResponse<T> httpResponse) {
+                completableFuture.complete(httpResponse);
             }
 
             @Override
@@ -109,12 +109,12 @@ public class ClientRequest {
         return completableFuture;
     }
 
-    public <T> Future<Response<T>> requestAsync(
-            Request request,
+    public <T> Future<HttpResponse<T>> requestAsync(
+            HttpRequest httpRequest,
             final Class<T> responseClass,
             Callback<T> callback) {
 
-        HttpUriRequest requestObj = prepareRequest(request, true);
+        HttpUriRequest requestObj = prepareRequest(httpRequest, true);
 
         if (asyncClient == null) {
             throw new RestClientException("Async client not configured");
@@ -126,7 +126,7 @@ public class ClientRequest {
 
         final Future<org.apache.http.HttpResponse> future = asyncClient.execute(requestObj, prepareCallback(responseClass, callback));
 
-        return new Future<Response<T>>() {
+        return new Future<HttpResponse<T>>() {
 
             public boolean cancel(boolean mayInterruptIfRunning) {
                 return future.cancel(mayInterruptIfRunning);
@@ -140,61 +140,61 @@ public class ClientRequest {
                 return future.isDone();
             }
 
-            public Response<T> get() throws InterruptedException, ExecutionException {
+            public HttpResponse<T> get() throws InterruptedException, ExecutionException {
                 return this.getResponse();
             }
 
-            public Response<T> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            public HttpResponse<T> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
                 return this.getResponse(timeout, unit);
             }
 
-            private Response<T> getResponse() throws ExecutionException, InterruptedException {
+            private HttpResponse<T> getResponse() throws ExecutionException, InterruptedException {
                 org.apache.http.HttpResponse httpResponse = future.get();
-                return new Response<>(httpResponse, responseClass);
+                return new HttpResponse<>(httpResponse, responseClass);
             }
 
-            private Response<T> getResponse(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+            private HttpResponse<T> getResponse(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
                 org.apache.http.HttpResponse httpResponse = future.get(timeout, unit);
-                return new Response<>(httpResponse, responseClass);
+                return new HttpResponse<>(httpResponse, responseClass);
             }
         };
     }
 
-    public <T> Response<T> request(final Request request, final Class<T> responseClass) {
+    public <T> HttpResponse<T> request(final HttpRequest httpRequest, final Class<T> responseClass) {
         if (syncClient == null) {
             throw new RestClientException("Sync client not configured");
         }
-        HttpRequestBase requestObj = prepareRequest(request, false);
+        HttpRequestBase requestObj = prepareRequest(httpRequest, false);
         org.apache.http.HttpResponse response;
         try {
             response = syncClient.execute(requestObj);
-            return Response.create(requestObj, response, responseClass);
+            return HttpResponse.create(requestObj, response, responseClass);
         } catch (Exception e) {
             throw new RestClientException(e);
         }
     }
 
-    private HttpRequestBase prepareRequest(Request request, boolean async) {
+    private HttpRequestBase prepareRequest(HttpRequest httpRequest, boolean async) {
 
         if (defaultHeaders != null) {
             for (Map.Entry<String, Object> entry : defaultHeaders.entrySet()) {
                 //Do not set content-type for multipart and urlencoded
-                if (!entry.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE) || request.body() == null || !request.body().implicitContentType()) {
-                    request.header(entry.getKey(), String.valueOf(entry.getValue()));
+                if (!entry.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE) || httpRequest.body() == null || !httpRequest.body().implicitContentType()) {
+                    httpRequest.header(entry.getKey(), String.valueOf(entry.getValue()));
                 }
             }
         }
 
-        if (!request.getHeaders().containsKey(HttpHeaders.USER_AGENT)) {
-            request.header(HttpHeaders.USER_AGENT, USER_AGENT);
+        if (!httpRequest.getHeaders().containsKey(HttpHeaders.USER_AGENT)) {
+            httpRequest.header(HttpHeaders.USER_AGENT, USER_AGENT);
         }
-        if (!request.getHeaders().containsKey(HttpHeaders.ACCEPT_ENCODING)) {
-            request.header(HttpHeaders.ACCEPT_ENCODING, Constants.GZIP);
+        if (!httpRequest.getHeaders().containsKey(HttpHeaders.ACCEPT_ENCODING)) {
+            httpRequest.header(HttpHeaders.ACCEPT_ENCODING, Constants.GZIP);
         }
 
         String urlToRequest;
         try {
-            URL reqUrl = new URL(request.getUrl());
+            URL reqUrl = new URL(httpRequest.getUrl());
             URI uri = new URI(reqUrl.getProtocol(), reqUrl.getUserInfo(), reqUrl.getHost(), reqUrl.getPort(), URLDecoder.decode(reqUrl.getPath(), StandardCharsets.UTF_8.name()), "", reqUrl.getRef());
             urlToRequest = uri.toURL().toString();
             if (reqUrl.getQuery() != null && !reqUrl.getQuery().trim().equals("")) {
@@ -210,7 +210,7 @@ public class ClientRequest {
         }
 
         HttpRequestBase reqObj = null;
-        switch (request.getHttpMethod()) {
+        switch (httpRequest.getHttpMethod()) {
             case GET:
                 reqObj = new HttpGet(urlToRequest);
                 break;
@@ -233,10 +233,10 @@ public class ClientRequest {
                 reqObj = new HttpHead(urlToRequest);
                 break;
             default:
-                throw new IllegalArgumentException("Invalid HTTP method: " + request.getHttpMethod());
+                throw new IllegalArgumentException("Invalid HTTP method: " + httpRequest.getHttpMethod());
         }
 
-        for (Map.Entry<String, List<String>> entry : request.getHeaders().entrySet()) {
+        for (Map.Entry<String, List<String>> entry : httpRequest.getHeaders().entrySet()) {
             List<String> values = entry.getValue();
             if (values != null) {
                 for (String value : values) {
@@ -246,9 +246,9 @@ public class ClientRequest {
         }
 
         // Set body
-        if (request.getHttpMethod() != HttpMethod.GET && request.getHttpMethod() != HttpMethod.HEAD) {
-            if (request.body() != null) {
-                HttpEntity entity = request.body().getEntity();
+        if (httpRequest.getHttpMethod() != HttpMethod.GET && httpRequest.getHttpMethod() != HttpMethod.HEAD) {
+            if (httpRequest.body() != null) {
+                HttpEntity entity = httpRequest.body().getEntity();
                 if (async) {
                     if (reqObj.getHeaders(HttpHeaders.CONTENT_TYPE) == null || reqObj.getHeaders(HttpHeaders.CONTENT_TYPE).length == 0) {
                         reqObj.setHeader(entity.getContentType());

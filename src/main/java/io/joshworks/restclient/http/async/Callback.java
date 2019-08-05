@@ -25,11 +25,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.http.async;
 
-import io.joshworks.restclient.http.Response;
+import io.joshworks.restclient.http.HttpResponse;
 
 public interface Callback<T> {
 
-    void completed(Response<T> response);
+    void completed(HttpResponse<T> httpResponse);
 
     void failed(Exception e);
 

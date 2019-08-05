@@ -45,7 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
-public class Response<T> implements Closeable {
+public class HttpResponse<T> implements Closeable {
 
     private final int statusCode;
     private final String statusText;
@@ -54,7 +54,7 @@ public class Response<T> implements Closeable {
     private final Class<T> responseClass;
     private byte[] cached;
 
-    Response(org.apache.http.HttpResponse response, Class<T> responseClass) {
+    HttpResponse(org.apache.http.HttpResponse response, Class<T> responseClass) {
         this.headers = responseHeaders(response);
         this.rawBody = consumeBody(response);
         this.responseClass = responseClass;
@@ -69,11 +69,11 @@ public class Response<T> implements Closeable {
         }
     }
 
-    public static <T> Response<T> create(HttpRequestBase request, org.apache.http.HttpResponse response, Class<T> responseClass) {
+    public static <T> HttpResponse<T> create(HttpRequestBase request, org.apache.http.HttpResponse response, Class<T> responseClass) {
         if (responseClass == InputStream.class) {
             return new HttpStreamResponse<>(response, responseClass, request);
         }
-        return new Response<>(response, responseClass);
+        return new HttpResponse<>(response, responseClass);
     }
 
 
