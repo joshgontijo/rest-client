@@ -26,7 +26,7 @@ Apart from the features provided by the original Unirest Java, this fork also ha
 <dependency>
     <groupId>io.joshworks.unirest</groupId>
     <artifactId>unirest-java</artifactId>
-    <version>1.7.1</version>
+    <version>1.8.0</version>
 </dependency>
 ```
 
@@ -46,7 +46,7 @@ RestClient client = RestClient.builder().build();
 
 RestClient client = RestClient.builder().build();
 
-HttpResponse<JsonNode> jsonResponse = client.post("http://httpbin.org/post")
+HttpResponse<Json> jsonResponse = client.post("http://httpbin.org/post")
   .header("accept", "application/json")
   .queryString("apiKey", "123")
   .asJson();
