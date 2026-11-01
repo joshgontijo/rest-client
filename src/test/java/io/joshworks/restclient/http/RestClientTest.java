@@ -311,6 +311,40 @@ public class RestClientTest {
         assertEquals("Basic dXNlcjp0ZXN0", httpResponse.body().getObject().getJSONObject("headers").getJSONArray("Authorization").get(0));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void basicAuthRejectsNullPassword() {
+        client.get(BASE_URL + "/echo").basicAuth("user", null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void headerRejectsNullValue() {
+        client.get(BASE_URL + "/echo").header("X-Test", (String) null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void headerRejectsLineBreaks() {
+        client.get(BASE_URL + "/echo").header("X-Test", "value\r\nInjected: true");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void headerRejectsInvalidName() {
+        client.get(BASE_URL + "/echo").header("Bad Header", "value");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void defaultHeaderRejectsNullValue() {
+        RestClient.builder().defaultHeader("X-Test", (String) null);
+    }
+
+    @Test
+    public void userAgentUsesLibraryVersion() {
+        HttpResponse<Json> httpResponse = client.get(BASE_URL + "/echo").asJson();
+        String userAgent = httpResponse.body().getObject().getJSONObject("headers").getJSONArray("User-Agent").getString(0);
+
+        assertTrue(userAgent.startsWith("rest-client/"));
+        assertFalse(userAgent.equals("rest-client/1.6.0"));
+    }
+
     @Test
     public void asyncPost() throws Exception {
         Future<HttpResponse<Json>> future = client.post(BASE_URL + "/echoMultipart")
