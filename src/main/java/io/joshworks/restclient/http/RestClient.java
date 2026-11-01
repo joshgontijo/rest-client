@@ -43,6 +43,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -184,12 +186,21 @@ public class RestClient implements Closeable {
             }
         }
 
-        if(baseUrl == null || baseUrl.trim().isEmpty()) {
-            return pathJoiner.toString();
+        String path = pathJoiner.toString();
+        if (baseUrl == null || baseUrl.trim().isEmpty() || isAbsoluteUrl(path)) {
+            return path;
         }
         String base = urlTransformer.apply(baseUrl);
         base = !base.endsWith(PATH_SEPARATOR) ? base + PATH_SEPARATOR : base;
-        return base + pathJoiner.toString();
+        return base + path;
+    }
+
+    private static boolean isAbsoluteUrl(String url) {
+        try {
+            return new URI(url).isAbsolute();
+        } catch (URISyntaxException e) {
+            return false;
+        }
     }
 
     void closeIdleConnections() {

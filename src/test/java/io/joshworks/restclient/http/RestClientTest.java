@@ -131,6 +131,13 @@ public class RestClientTest {
     }
 
     @Test
+    public void absoluteUrlIsNotPrefixedWithBaseUrl() {
+        try (RestClient customClient = RestClient.builder().baseUrl("http://invalid-url.abc").build()) {
+            assertEquals(BASE_URL + "/echo", customClient.resolveUrl(BASE_URL + "/echo"));
+        }
+    }
+
+    @Test
     public void simplePost() {
         String message = "hello";
         HttpResponse<String> httpResponse = client.post(BASE_URL + "/echoPlain").body(message).asString();
@@ -787,6 +794,45 @@ public class RestClientTest {
 
         assertEquals(200, httpResponse.status());
         assertEquals(value, httpResponse.body());
+    }
+
+    @Test
+    public void pathParametersUnicode() {
+        String value = "こんにちは";
+        HttpResponse<String> httpResponse = client.get(BASE_URL + "/echo/{name}")
+                .routeParam("name", value)
+                .asString();
+
+        assertEquals(200, httpResponse.status());
+        assertEquals(value, httpResponse.body());
+    }
+
+    @Test
+    public void pathParameterEncodesSlash() {
+        HttpRequest request = client.get(BASE_URL + "/echo/{name}")
+                .routeParam("name", "a/b")
+                .getHttpRequest();
+
+        assertTrue(request.getUrl().endsWith("/echo/a%2Fb"));
+    }
+
+    @Test
+    public void pathParameterEncodesRegexReplacementCharacters() {
+        HttpRequest request = client.get(BASE_URL + "/echo/{name}")
+                .routeParam("name", "$1\\")
+                .getHttpRequest();
+
+        assertTrue(request.getUrl().endsWith("/echo/%241%5C"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void pathParameterRejectsNullValue() {
+        client.get(BASE_URL + "/echo/{name}").routeParam("name", null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void queryStringRejectsNullName() {
+        client.get(BASE_URL + "/echo").queryString(null, "value");
     }
 
     @Test
