@@ -29,7 +29,10 @@ import org.apache.http.nio.conn.NoopIOSessionStrategy;
 import org.apache.http.nio.conn.SchemeIOSessionStrategy;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -42,6 +45,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public class ClientBuilder {
+
+    private static final Logger logger = LoggerFactory.getLogger(ClientBuilder.class);
 
     private CredentialsProvider credentialsProvider;
     private int maxTotal = 20;
@@ -116,27 +121,42 @@ public class ClientBuilder {
     private Registry<ConnectionSocketFactory> syncSessionStrategy() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
         return RegistryBuilder.<ConnectionSocketFactory> create()
                 .register("http", PlainConnectionSocketFactory.getSocketFactory())
-                .register("https", new SSLConnectionSocketFactory(byPassCertificate(), new NoopHostnameVerifier()))
+                .register("https", sslConnectionSocketFactory())
                 .build();
     }
-
 
     private Registry<SchemeIOSessionStrategy> asyncSessionStrategy() throws Exception {
-        SchemeIOSessionStrategy httpsSessionStrategy = sslCheckDisabled ? noCertificateCheck() : SSLIOSessionStrategy.getDefaultStrategy();
-
         return RegistryBuilder.<SchemeIOSessionStrategy>create()
                 .register("http", NoopIOSessionStrategy.INSTANCE)
-                .register("https", httpsSessionStrategy)
+                .register("https", sslSessionStrategy())
                 .build();
-
     }
 
-    private SSLIOSessionStrategy noCertificateCheck() throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
-        return new SSLIOSessionStrategy(byPassCertificate(), NoopHostnameVerifier.INSTANCE);
-
+    private SSLConnectionSocketFactory sslConnectionSocketFactory() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+        if (sslCheckDisabled) {
+            return new SSLConnectionSocketFactory(trustAllSslContext(), NoopHostnameVerifier.INSTANCE);
+        }
+        if (sslContext != null) {
+            return new SSLConnectionSocketFactory(sslContext, defaultHostnameVerifier());
+        }
+        return SSLConnectionSocketFactory.getSocketFactory();
     }
 
-    private SSLContext byPassCertificate() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+    private SSLIOSessionStrategy sslSessionStrategy() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+        if (sslCheckDisabled) {
+            return new SSLIOSessionStrategy(trustAllSslContext(), NoopHostnameVerifier.INSTANCE);
+        }
+        if (sslContext != null) {
+            return new SSLIOSessionStrategy(sslContext, defaultHostnameVerifier());
+        }
+        return SSLIOSessionStrategy.getDefaultStrategy();
+    }
+
+    private HostnameVerifier defaultHostnameVerifier() {
+        return SSLConnectionSocketFactory.getDefaultHostnameVerifier();
+    }
+
+    private SSLContext trustAllSslContext() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
         return new SSLContextBuilder()
                 .loadTrustMaterial(null, (x509Certificates, s) -> true)
                 .build();
@@ -146,8 +166,12 @@ public class ClientBuilder {
         HttpAsyncClientBuilder asyncBuilder = HttpAsyncClientBuilder.create()
                 .setDefaultRequestConfig(clientConfig)
                 .setDefaultCookieStore(cookieStore)
-                .setSSLContext(sslContext)
+                .setDefaultCredentialsProvider(credentialsProvider)
                 .setConnectionManager(manager);
+
+        if (sslContext != null) {
+            asyncBuilder.setSSLContext(sslContext);
+        }
 
         return addInterceptors(asyncBuilder).build();
     }
@@ -157,7 +181,6 @@ public class ClientBuilder {
         HttpClientBuilder syncBuilder = HttpClientBuilder.create()
                 .setDefaultRequestConfig(clientConfig)
                 .setDefaultCookieStore(cookieStore)
-                .setSSLContext(sslContext)
                 .setRedirectStrategy(new LaxRedirectStrategy())
                 .setDefaultCredentialsProvider(credentialsProvider)
                 .setConnectionManager(manager);
@@ -204,7 +227,17 @@ public class ClientBuilder {
         return this;
     }
 
+    /**
+     * Disables TLS certificate and hostname verification.
+     * <p>
+     * This makes the client vulnerable to man-in-the-middle attacks and should
+     * only be used for local development or testing. Prefer configuring a
+     * custom {@link #sslContext(SSLContext)} with the required trust material.
+     *
+     * @return this builder
+     */
     public ClientBuilder disableSSLCheck() {
+        logger.warn("TLS certificate and hostname verification disabled for this client");
         this.sslCheckDisabled = true;
         return this;
     }
