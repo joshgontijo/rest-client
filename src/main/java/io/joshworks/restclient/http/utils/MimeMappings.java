@@ -152,7 +152,7 @@ public class MimeMappings {
     public static final MimeMappings DEFAULT = MimeMappings.builder().build();
 
     MimeMappings(final Map<String, String> mappings) {
-        this.mappings = mappings;
+        this.mappings = Collections.unmodifiableMap(new HashMap<>(mappings));
     }
 
     public static Builder builder() {
@@ -174,7 +174,7 @@ public class MimeMappings {
         }
 
         public Builder addMapping(final String extension, final String contentType) {
-            mappings.put(extension.toLowerCase(Locale.ENGLISH), contentType);
+            mappings.put(extension.toLowerCase(Locale.ROOT), contentType);
             return this;
         }
 
@@ -184,7 +184,7 @@ public class MimeMappings {
     }
 
     public String getMimeType(final String extension) {
-        return mappings.get(extension.toLowerCase(Locale.ENGLISH));
+        return extension == null ? null : mappings.get(extension.toLowerCase(Locale.ROOT));
     }
 
 }

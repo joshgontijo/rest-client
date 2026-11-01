@@ -43,7 +43,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
 
 public class HttpResponse<T> implements Closeable {
 
@@ -79,24 +78,16 @@ public class HttpResponse<T> implements Closeable {
 
     protected InputStream consumeBody(org.apache.http.HttpResponse response) {
         HttpEntity responseEntity = response.getEntity();
-        try {
-            if (responseEntity != null) {
-                InputStream entity = entity(responseEntity);
-                return new ByteArrayInputStream(ResponseUtils.readBytes(entity));
-            }
+        if (responseEntity == null) {
             return null;
+        }
+        try (InputStream entity = ResponseUtils.openEntityStream(responseEntity)) {
+            return new ByteArrayInputStream(ResponseUtils.readBytes(entity));
         } catch (IOException ex) {
             throw new RestClientException(ex);
         } finally {
             EntityUtils.consumeQuietly(responseEntity);
         }
-    }
-
-    private InputStream entity(HttpEntity responseEntity) throws IOException {
-        if (ResponseUtils.isGzipped(responseEntity.getContentEncoding()) && responseEntity.getContentLength() > 0) {
-            return new GZIPInputStream(responseEntity.getContent());
-        }
-        return responseEntity.getContent();
     }
 
     private Headers responseHeaders(org.apache.http.HttpResponse response) {
@@ -118,7 +109,7 @@ public class HttpResponse<T> implements Closeable {
     }
 
     public boolean successful() {
-        return statusCode >= 200 && statusCode < 300 || statusCode == 304;
+        return (statusCode >= 200 && statusCode < 300) || statusCode == 304;
     }
 
     public String statusText() {
@@ -212,7 +203,11 @@ public class HttpResponse<T> implements Closeable {
             throw new RestClientException("Response Content-Type header not found");
         }
         MediaType mediaType = MediaType.valueOf(contentType);
-        return ObjectMappers.getMapper(mediaType);
+        ObjectMapper mapper = ObjectMappers.getMapper(mediaType);
+        if (mapper == null) {
+            throw new RestClientException("No ObjectMapper found for response with Content-Type: " + contentType);
+        }
+        return mapper;
     }
 
     @Override

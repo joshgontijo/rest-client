@@ -43,6 +43,7 @@ import io.joshworks.restclient.http.utils.MimeMappings;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.TreeMap;
@@ -161,10 +162,10 @@ public class MediaType {
      */
     private static final String SUBTYPE_SEPARATOR = "/";
     private static final String PARAMETERS_SEPARATOR = ";";
-    private static MimeMappings mimeMappings = MimeMappings.builder().build();
-    private String type;
-    private String subtype;
-    private Map<String, String> parameters = new HashMap<>();
+    private static final MimeMappings mimeMappings = MimeMappings.builder().build();
+    private final String type;
+    private final String subtype;
+    private final Map<String, String> parameters;
 
     /**
      * Creates a new instance of MediaType with the supplied type, subtype and
@@ -180,12 +181,12 @@ public class MediaType {
     public MediaType(String type, String subtype, Map<String, String> parameters) {
         this.type = type == null ? MEDIA_TYPE_WILDCARD : type;
         this.subtype = subtype == null ? MEDIA_TYPE_WILDCARD : subtype;
-        if (parameters == null) {
-            this.parameters = new HashMap<>();
+        if (parameters == null || parameters.isEmpty()) {
+            this.parameters = Collections.emptyMap();
         } else {
             Map<String, String> map = new TreeMap<>(String::compareToIgnoreCase);
             for (Map.Entry<String, String> e : parameters.entrySet()) {
-                map.put(e.getKey().toLowerCase(), e.getValue());
+                map.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue());
             }
             this.parameters = Collections.unmodifiableMap(map);
         }
@@ -220,28 +221,29 @@ public class MediaType {
      *                                  or is null
      */
     public static MediaType valueOf(String type) throws IllegalArgumentException {
-        if (type == null || type.trim().isEmpty() || type.startsWith(SUBTYPE_SEPARATOR) || type.endsWith(SUBTYPE_SEPARATOR)) {
+        if (type == null || type.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid mime type '" + type + "'");
         }
-        String[] splitType = type.split(SUBTYPE_SEPARATOR);
+
+        String[] typeAndParameters = type.split(PARAMETERS_SEPARATOR, 2);
+        String mimeType = typeAndParameters[0].trim();
+        if (mimeType.isEmpty() || mimeType.startsWith(SUBTYPE_SEPARATOR) || mimeType.endsWith(SUBTYPE_SEPARATOR)) {
+            throw new IllegalArgumentException("Invalid mime type '" + type + "'");
+        }
+
+        String[] splitType = mimeType.split(SUBTYPE_SEPARATOR, -1);
         if (splitType.length == 2) {
             nonEmpty(type, splitType[0]);
             nonEmpty(type, splitType[1]);
-            Map<String, String> parameters = new HashMap<>();
-            String subType = splitType[1];
-            if (splitType[1].contains(PARAMETERS_SEPARATOR)) {
-                String[] subTypeWithparameter = splitType[1].split(PARAMETERS_SEPARATOR);
-                String paramString = subTypeWithparameter[1].trim();
-                subType = subTypeWithparameter[0];
-                parameters = parseParameters(paramString);
-            }
-            return new MediaType(splitType[0].trim(), subType.trim(), parameters);
+            Map<String, String> parameters = typeAndParameters.length > 1
+                    ? parseParameters(typeAndParameters[1])
+                    : Collections.emptyMap();
+            return new MediaType(splitType[0].trim(), splitType[1].trim(), parameters);
         }
-        if (!type.contains(SUBTYPE_SEPARATOR)) {
-            String mimeType = mimeMappings.getMimeType(type);
-            if (mimeType != null) {
-                return valueOf(mimeType);
-            }
+
+        String mappedMimeType = mimeMappings.getMimeType(mimeType);
+        if (mappedMimeType != null) {
+            return valueOf(mappedMimeType);
         }
         throw new IllegalArgumentException("Invalid mime type '" + type + "'");
     }
@@ -257,11 +259,24 @@ public class MediaType {
 
     private static Map<String, String> parseParameters(String paramString) {
         Map<String, String> parameters = new HashMap<>();
-        String[] split = paramString.split(" ");
-        for (String kv : split) {
-            String[] keyValue = kv.split("=");
-            if (keyValue.length == 2) {
-                parameters.put(keyValue[0], keyValue[1]);
+        for (String parameter : paramString.split(PARAMETERS_SEPARATOR)) {
+            String value = parameter.trim();
+            if (value.isEmpty()) {
+                continue;
+            }
+            int separator = value.indexOf('=');
+            if (separator <= 0) {
+                continue;
+            }
+            String key = value.substring(0, separator).trim();
+            String parameterValue = value.substring(separator + 1).trim();
+            if (parameterValue.length() >= 2
+                    && parameterValue.startsWith("\"")
+                    && parameterValue.endsWith("\"")) {
+                parameterValue = parameterValue.substring(1, parameterValue.length() - 1);
+            }
+            if (!key.isEmpty()) {
+                parameters.put(key, parameterValue);
             }
         }
         return parameters;
@@ -363,7 +378,7 @@ public class MediaType {
 
     @Override
     public int hashCode() {
-        return (this.type.toLowerCase() + this.subtype.toLowerCase()).hashCode() + this.parameters.hashCode();
+        return (this.type.toLowerCase(Locale.ROOT) + this.subtype.toLowerCase(Locale.ROOT)).hashCode() + this.parameters.hashCode();
     }
 
 

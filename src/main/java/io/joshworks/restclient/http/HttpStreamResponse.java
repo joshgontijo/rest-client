@@ -26,6 +26,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.joshworks.restclient.http;
 
 import io.joshworks.restclient.http.exceptions.RestClientException;
+import io.joshworks.restclient.http.utils.ResponseUtils;
 import org.apache.http.client.methods.HttpRequestBase;
 
 import java.io.IOException;
@@ -48,7 +49,7 @@ class HttpStreamResponse<T> extends HttpResponse<T> {
     @Override
     protected InputStream consumeBody(org.apache.http.HttpResponse response) {
         try {
-            return response.getEntity().getContent();
+            return ResponseUtils.openEntityStream(response.getEntity());
         } catch (IOException e) {
             throw new RestClientException(e);
         }
