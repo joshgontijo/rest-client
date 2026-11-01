@@ -145,6 +145,8 @@
                     <archive>
                         <manifestEntries>
                             <Automatic-Module-Name>io.joshworks.restclient</Automatic-Module-Name>
+                            <Implementation-Title>${project.name}</Implementation-Title>
+                            <Implementation-Version>${project.version}</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
