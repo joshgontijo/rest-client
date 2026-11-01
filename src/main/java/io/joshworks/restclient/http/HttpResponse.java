@@ -81,7 +81,7 @@ public class HttpResponse<T> implements Closeable {
         HttpEntity responseEntity = response.getEntity();
         try {
             if (responseEntity != null) {
-                InputStream entity = getEntity(responseEntity);
+                InputStream entity = entity(responseEntity);
                 return new ByteArrayInputStream(ResponseUtils.readBytes(entity));
             }
             return null;
@@ -92,7 +92,7 @@ public class HttpResponse<T> implements Closeable {
         }
     }
 
-    private InputStream getEntity(HttpEntity responseEntity) throws IOException {
+    private InputStream entity(HttpEntity responseEntity) throws IOException {
         if (ResponseUtils.isGzipped(responseEntity.getContentEncoding()) && responseEntity.getContentLength() > 0) {
             return new GZIPInputStream(responseEntity.getContent());
         }
@@ -113,15 +113,15 @@ public class HttpResponse<T> implements Closeable {
         return headers;
     }
 
-    public int getStatus() {
+    public int status() {
         return statusCode;
     }
 
-    public boolean isSuccessful() {
+    public boolean successful() {
         return statusCode >= 200 && statusCode < 300 || statusCode == 304;
     }
 
-    public String getStatusText() {
+    public String statusText() {
         return statusText;
     }
 
@@ -129,7 +129,7 @@ public class HttpResponse<T> implements Closeable {
      * @return Response Headers (map) with <b>same case</b> as server response.
      * For instance use <code>getHeaders().getFirst("Location")</code> and not <code>getHeaders().getFirst("location")</code> to get first header "Location"
      */
-    public Headers getHeaders() {
+    public Headers headers() {
         return headers;
     }
 
@@ -137,15 +137,15 @@ public class HttpResponse<T> implements Closeable {
      * Returns the raw response data stream, the data will no be cached for further readings
      * @return The raw data stream
      */
-    public InputStream getRawBody() {
+    public InputStream rawBody() {
         if(cached != null) {
             return new ByteArrayInputStream(cached);
         }
         return rawBody;
     }
 
-    public <E> E bodyAs(Class<E> type) {
-        return getObjectMapper().readValue(asString(), type);
+    public <E> E as(Class<E> type) {
+        return findObjectMapper().readValue(asString(), type);
     }
 
     public String asString() {
@@ -171,7 +171,7 @@ public class HttpResponse<T> implements Closeable {
         } else if (String.class.equals(type)) {
             return (T) bodyString;
         } else {
-            return getObjectMapper().readValue(bodyString, type);
+            return findObjectMapper().readValue(bodyString, type);
         }
     }
 
@@ -186,14 +186,14 @@ public class HttpResponse<T> implements Closeable {
                 rawBody.close();
             }
 
-            String charset = getCharset();
+            String charset = charset();
             return new String(cached, charset);
         } catch (IOException e) {
             throw new RestClientException(e);
         }
     }
 
-    private String getCharset() {
+    private String charset() {
         String charset = StandardCharsets.UTF_8.name();
 
         String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
@@ -206,17 +206,13 @@ public class HttpResponse<T> implements Closeable {
         return charset;
     }
 
-    private ObjectMapper getObjectMapper() {
+    private ObjectMapper findObjectMapper() {
         String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
         if (contentType == null) {
             throw new RestClientException("Response Content-Type header not found");
         }
         MediaType mediaType = MediaType.valueOf(contentType);
-        ObjectMapper mapper = ObjectMappers.getMapper(mediaType);
-        if (mapper == null) {
-            throw new RestClientException("No ObjectMapper found for response with Content-Type: " + contentType);
-        }
-        return mapper;
+        return ObjectMappers.getMapper(mediaType);
     }
 
     @Override

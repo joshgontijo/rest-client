@@ -126,7 +126,7 @@ public class RestClientTest {
     @Test
     public void simpleGet() {
         HttpResponse<String> httpResponse = client.get(BASE_URL + "/hello").asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertNotNull(httpResponse.body());
         assertFalse(httpResponse.body().isEmpty());
     }
@@ -147,7 +147,7 @@ public class RestClientTest {
     public void simplePost() {
         String message = "hello";
         HttpResponse<String> httpResponse = client.post(BASE_URL + "/echoPlain").body(message).asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals(message, httpResponse.body());
     }
 
@@ -155,7 +155,7 @@ public class RestClientTest {
     public void simplePut() {
         String message = "hello";
         HttpResponse<String> httpResponse = client.put(BASE_URL + "/echoPlain").body(message).asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals(message, httpResponse.body());
     }
 
@@ -163,7 +163,7 @@ public class RestClientTest {
     public void simpleDelete() {
         String message = "hello";
         HttpResponse<String> httpResponse = client.delete(BASE_URL + "/echoPlain").body(message).asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals(message, httpResponse.body());
     }
 
@@ -171,21 +171,21 @@ public class RestClientTest {
     public void simpleOptions() {
         String message = "hello";
         HttpResponse<String> httpResponse = client.options(BASE_URL + "/echoPlain").body(message).asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals(message, httpResponse.body());
     }
 
     @Test
     public void simpleHead() {
         HttpResponse<String> httpResponse = client.head(BASE_URL + "/echoPlain").asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertNull(httpResponse.body());
     }
 
     @Test
     public void nullBody() {
         HttpResponse<String> httpResponse = client.head(BASE_URL + "/nullBody").asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertNull(httpResponse.body());
     }
 
@@ -243,21 +243,21 @@ public class RestClientTest {
     @Test
     public void redirect301() {
         HttpResponse<String> httpResponse = client.get(BASE_URL + "/redirect301").asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals("Hello", httpResponse.body());
     }
 
     @Test
     public void redirect302() {
         HttpResponse<String> httpResponse = client.get(BASE_URL + "/redirect302").asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals("Hello", httpResponse.body());
     }
 
     @Test
     public void redirect303() {
         HttpResponse<String> httpResponse = client.get(BASE_URL + "/redirect303").asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals("Hello", httpResponse.body());
     }
 
@@ -273,7 +273,7 @@ public class RestClientTest {
                     .header("Content-Type", "application/json")
                     .asJson();
 
-            assertEquals(301, postHttpResponse.getStatus());
+            assertEquals(301, postHttpResponse.status());
         }
     }
 
@@ -337,10 +337,10 @@ public class RestClientTest {
         assertNotNull(future);
         HttpResponse<Json> jsonHttpResponse = future.get();
 
-        assertTrue(jsonHttpResponse.getHeaders().size() > 0);
+        assertTrue(jsonHttpResponse.headers().size() > 0);
         assertTrue(jsonHttpResponse.body().toString().length() > 0);
-        assertFalse(jsonHttpResponse.getRawBody() == null);
-        assertEquals(200, jsonHttpResponse.getStatus());
+        assertFalse(jsonHttpResponse.rawBody() == null);
+        assertEquals(200, jsonHttpResponse.status());
 
         Json json = jsonHttpResponse.body();
         assertFalse(json.isArray());
@@ -367,10 +367,10 @@ public class RestClientTest {
 
                     @Override
                     public void completed(HttpResponse<Json> jsonHttpResponse) {
-                        assertTrue(jsonHttpResponse.getHeaders().size() > 0);
+                        assertTrue(jsonHttpResponse.headers().size() > 0);
                         assertTrue(jsonHttpResponse.body().toString().length() > 0);
-                        assertFalse(jsonHttpResponse.getRawBody() == null);
-                        assertEquals(200, jsonHttpResponse.getStatus());
+                        assertFalse(jsonHttpResponse.rawBody() == null);
+                        assertEquals(200, jsonHttpResponse.status());
 
                         Json json = jsonHttpResponse.body();
                         assertFalse(json.isArray());
@@ -419,7 +419,7 @@ public class RestClientTest {
                 .part("name", "Mark")
                 .asJson();
 
-        assertEquals(415, httpResponse.getStatus());
+        assertEquals(415, httpResponse.status());
     }
 
     @Test
@@ -495,10 +495,10 @@ public class RestClientTest {
     }
 
     private void validateBasicFormFields(HttpResponse<Json> httpResponse) {
-        assertEquals(200, httpResponse.getStatus());
-        assertTrue(httpResponse.getHeaders().size() > 0);
+        assertEquals(200, httpResponse.status());
+        assertTrue(httpResponse.headers().size() > 0);
         assertTrue(httpResponse.body().toString().length() > 0);
-        assertFalse(httpResponse.getRawBody() == null);
+        assertFalse(httpResponse.rawBody() == null);
 
         Json json = httpResponse.body();
         assertFalse(json.isArray());
@@ -657,9 +657,9 @@ public class RestClientTest {
                 .body("{\"field\": \"value\"}")
                 .asJson();
 
-        assertTrue(httpResponse.getHeaders().size() > 0);
-        assertFalse(httpResponse.getRawBody() == null);
-        assertEquals(200, httpResponse.getStatus());
+        assertTrue(httpResponse.headers().size() > 0);
+        assertFalse(httpResponse.rawBody() == null);
+        assertEquals(200, httpResponse.status());
 
         JSONArray contentTypes = httpResponse.body().getObject().getJSONArray("Content-Type");
         assertEquals(1, contentTypes.length());
@@ -673,9 +673,9 @@ public class RestClientTest {
                 .body(value)
                 .asString();
 
-        assertTrue(httpResponse.getHeaders().size() > 0);
-        assertFalse(httpResponse.getRawBody() == null);
-        assertEquals(200, httpResponse.getStatus());
+        assertTrue(httpResponse.headers().size() > 0);
+        assertFalse(httpResponse.rawBody() == null);
+        assertEquals(200, httpResponse.status());
 
         assertEquals(value, httpResponse.body());
     }
@@ -688,9 +688,9 @@ public class RestClientTest {
                 .asStringAsync()
                 .get();
 
-        assertTrue(httpResponse.getHeaders().size() > 0);
-        assertFalse(httpResponse.getRawBody() == null);
-        assertEquals(200, httpResponse.getStatus());
+        assertTrue(httpResponse.headers().size() > 0);
+        assertFalse(httpResponse.rawBody() == null);
+        assertEquals(200, httpResponse.status());
 
         assertEquals(value, httpResponse.body());
     }
@@ -706,10 +706,10 @@ public class RestClientTest {
 
 
             HttpResponse<Json> jsonHttpResponse = customClient.post(BASE_URL + "/echoHeaders").asJson();
-            assertTrue(jsonHttpResponse.getHeaders().size() > 0);
+            assertTrue(jsonHttpResponse.headers().size() > 0);
             assertTrue(jsonHttpResponse.body().toString().length() > 0);
-            assertFalse(jsonHttpResponse.getRawBody() == null);
-            assertEquals(200, jsonHttpResponse.getStatus());
+            assertFalse(jsonHttpResponse.rawBody() == null);
+            assertEquals(200, jsonHttpResponse.status());
 
             Json json = jsonHttpResponse.body();
             assertFalse(json.isArray());
@@ -777,7 +777,7 @@ public class RestClientTest {
                 .routeParam("name", value)
                 .asString();
 
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals(value, httpResponse.body());
     }
 
@@ -788,7 +788,7 @@ public class RestClientTest {
                 .routeParam("name", value)
                 .asString();
 
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals(value, httpResponse.body());
     }
 
@@ -799,7 +799,7 @@ public class RestClientTest {
                 .routeParam("name", value)
                 .asString();
 
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals(value, httpResponse.body());
     }
 
@@ -812,7 +812,7 @@ public class RestClientTest {
                 .queryString("q", queryValue)
                 .asJson();
 
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals(pathValue, httpResponse.body().getObject().getJSONObject("path").getString("pathParam"));
         assertEquals(queryValue, httpResponse.body().getObject().getJSONObject("queryParams").getJSONArray("q").get(0));
     }
@@ -828,7 +828,7 @@ public class RestClientTest {
                 .field("formParam", formParamVal)
                 .asJson();
 
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals(queryVal, httpResponse.body().getObject().getJSONObject("queryParams").getJSONArray("q").get(0));
         assertEquals(pathParamVal, httpResponse.body().getObject().getJSONObject("path").getString("pathParam"));
         assertEquals(formParamVal, httpResponse.body().getObject().getJSONObject("body").getJSONArray("formParam").getString(0));
@@ -1004,7 +1004,7 @@ public class RestClientTest {
                 .field("name", "Tom")
                 .asJson();
 
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         JSONArray names = httpResponse.body().getObject().getJSONObject("body").getJSONArray("name");
         assertEquals(2, names.length());
 
@@ -1024,7 +1024,7 @@ public class RestClientTest {
                 .body(values)
                 .asJson();
 
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
 
         List<TestData> items = httpResponse.body().asListOf(TestData.class);
         assertEquals(values.size(), items.size());
@@ -1090,15 +1090,15 @@ public class RestClientTest {
     @Test
     public void multipleClients() {
         RestClient client1 = RestClient.builder().build();
-        int status = client1.get(BASE_URL + "/echo").asString().getStatus();
+        int status = client1.get(BASE_URL + "/echo").asString().status();
         assertEquals(200, status);
 
         RestClient client2 = RestClient.builder().build();
-        status = client2.get(BASE_URL + "/echo").asString().getStatus();
+        status = client2.get(BASE_URL + "/echo").asString().status();
         assertEquals(200, status);
 
         RestClient client3 = RestClient.builder().build();
-        status = client3.get(BASE_URL + "/echo").asString().getStatus();
+        status = client3.get(BASE_URL + "/echo").asString().status();
         assertEquals(200, status);
 
         client1.close();
@@ -1110,17 +1110,17 @@ public class RestClientTest {
     public void multipleClients_sameBuilder() {
         ClientBuilder builder = RestClient.builder();
         RestClient client1 = builder.build();
-        int status = client1.get(BASE_URL + "/echo").asString().getStatus();
+        int status = client1.get(BASE_URL + "/echo").asString().status();
         assertEquals(200, status);
         client1.close();
 
         RestClient client2 = builder.build();
-        status = client2.get(BASE_URL + "/echo").asString().getStatus();
+        status = client2.get(BASE_URL + "/echo").asString().status();
         assertEquals(200, status);
         client2.close();
 
         RestClient client3 = builder.build();
-        status = client3.get(BASE_URL + "/echo").asString().getStatus();
+        status = client3.get(BASE_URL + "/echo").asString().status();
         assertEquals(200, status);
         client3.close();
     }
@@ -1166,7 +1166,7 @@ public class RestClientTest {
                 .header("Content-Type", "application/json")
                 .body(testData).asObject(TestData.class);
 
-        assertEquals(200, getHttpResponse.getStatus());
+        assertEquals(200, getHttpResponse.status());
         assertNotNull(getHttpResponse.body());
         assertEquals(testData, getHttpResponse.body());
     }
@@ -1202,7 +1202,7 @@ public class RestClientTest {
                 .header("Content-Type", TestServer.contentType)
                 .body(testData).asObject(TestData.class);
 
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
         assertEquals(testData, httpResponse.body());
     }
 
@@ -1236,7 +1236,7 @@ public class RestClientTest {
                 .build();
 
         HttpResponse<String> httpResponse = client.get("/get").asString();
-        assertEquals(200, httpResponse.getStatus());
+        assertEquals(200, httpResponse.status());
     }
 
     @Test
@@ -1249,7 +1249,7 @@ public class RestClientTest {
                     .header("Content-Type", "application/json")
                     .asJson();
 
-            assertEquals(200, postHttpResponse.getStatus());
+            assertEquals(200, postHttpResponse.status());
         }
     }
 
@@ -1262,8 +1262,8 @@ public class RestClientTest {
                     .queryString(key, value)
                     .asString();
 
-            assertEquals(200, httpResponse.getStatus());
-            List<String> cookies = httpResponse.getHeaders().get("Set-Cookie");
+            assertEquals(200, httpResponse.status());
+            List<String> cookies = httpResponse.headers().get("Set-Cookie");
             assertEquals(1, cookies.size());
             assertEquals(key + "=" + value, cookies.get(0));
         }
@@ -1280,7 +1280,7 @@ public class RestClientTest {
     public void withHttpBuilder() {
         try (RestClient client = RestClient.with(HttpClientBuilder.create())) {
             HttpResponse<String> httpResponse = client.get(BASE_URL + "/hello").asString();
-            assertEquals(200, httpResponse.getStatus());
+            assertEquals(200, httpResponse.status());
             assertNotNull(httpResponse.body());
         }
     }
@@ -1298,7 +1298,7 @@ public class RestClientTest {
             CountDownLatch latch = new CountDownLatch(1);
             client.get(BASE_URL + "/hello").asStringAsync().thenAccept(response -> {
                 latch.countDown();
-                assertEquals(200, response.getStatus());
+                assertEquals(200, response.status());
             });
 
             if (!latch.await(5, TimeUnit.SECONDS)) {
@@ -1328,8 +1328,8 @@ public class RestClientTest {
     @Test
     public void utf8Encoding() {
         HttpResponse<Json> httpResponse = client.get(BASE_URL + "/utf8Json").asJson();
-        assertEquals(200, httpResponse.getStatus());
-        Map<String, Object> body = httpResponse.bodyAs(Map.class);
+        assertEquals(200, httpResponse.status());
+        Map<String, Object> body = httpResponse.as(Map.class);
         System.out.println(body);
     }
 }
