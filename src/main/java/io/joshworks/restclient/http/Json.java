@@ -41,7 +41,7 @@ import java.util.Map;
 
 public class Json {
 
-    private static Gson gson = new Gson();
+    private static final Gson gson = new Gson();
 
     private JSONObject jsonObject;
     private JSONArray jsonArray;

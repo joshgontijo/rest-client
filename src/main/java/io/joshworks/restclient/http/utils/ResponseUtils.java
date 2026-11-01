@@ -2,13 +2,14 @@ package io.joshworks.restclient.http.utils;
 
 import io.joshworks.restclient.Constants;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
 
 public class ResponseUtils {
 
@@ -32,28 +33,41 @@ public class ResponseUtils {
     }
 
     public static byte[] readBytes(InputStream is) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] buf = new byte[8192];
         int len;
-        int size = 8192;
-        byte[] buf;
-
-        if (is instanceof ByteArrayInputStream) {
-            size = is.available();
-            buf = new byte[size];
-            len = is.read(buf, 0, size);
-        } else {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            buf = new byte[size];
-            while ((len = is.read(buf, 0, size)) != -1)
-                bos.write(buf, 0, len);
-            buf = bos.toByteArray();
+        while ((len = is.read(buf)) != -1) {
+            bos.write(buf, 0, len);
         }
-        return buf;
+        return bos.toByteArray();
+    }
+
+    /**
+     * Opens the entity content, transparently decompressing gzip responses.
+     * A chunked gzip response has a content length of {@code -1}, so the
+     * stream must still be decompressed in that case.
+     *
+     * @param entity the response entity, may be {@code null}
+     * @return the entity stream or {@code null} when there is no entity
+     * @throws IOException if the content stream cannot be opened
+     */
+    public static InputStream openEntityStream(HttpEntity entity) throws IOException {
+        if (entity == null) {
+            return null;
+        }
+        if (isGzipped(entity.getContentEncoding()) && entity.getContentLength() != 0) {
+            return new GZIPInputStream(entity.getContent());
+        }
+        return entity.getContent();
     }
 
     public static boolean isGzipped(Header contentEncoding) {
-        if (contentEncoding != null) {
-            String value = contentEncoding.getValue();
-            if (value != null && Constants.GZIP.equals(value.toLowerCase().trim())) {
+        if (contentEncoding == null || contentEncoding.getValue() == null) {
+            return false;
+        }
+        for (String token : contentEncoding.getValue().split(",")) {
+            String value = token.trim();
+            if (Constants.GZIP.equalsIgnoreCase(value) || "x-gzip".equalsIgnoreCase(value)) {
                 return true;
             }
         }
