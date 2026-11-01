@@ -1,6 +1,8 @@
 #!/bin/bash
 
-if [ -z "$1" ]
+set -euo pipefail
+
+if [ -z "${1:-}" ]
   then
     echo "No version supplied"
     exit 1
@@ -10,13 +12,13 @@ echo "Releasing version $1"
 
 mvn clean install
 
-mvn versions:set -DgenerateBackupPoms=false -DnewVersion=$1
+mvn versions:set -DgenerateBackupPoms=false -DnewVersion="$1"
 
 git commit -a -m "Release $1"
-git push origin master
+git push origin HEAD
 
-git tag -a $1 -m "Release $1"
-git push origin $1
+git tag -a "$1" -m "Release $1"
+git push origin "$1"
 
 
 mvn clean deploy -P release
