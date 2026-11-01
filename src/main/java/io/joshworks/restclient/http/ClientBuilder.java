@@ -132,7 +132,7 @@ public class ClientBuilder {
                 .build();
     }
 
-    private SSLConnectionSocketFactory sslConnectionSocketFactory() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+    SSLConnectionSocketFactory sslConnectionSocketFactory() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
         if (sslCheckDisabled) {
             return new SSLConnectionSocketFactory(trustAllSslContext(), NoopHostnameVerifier.INSTANCE);
         }
@@ -142,7 +142,7 @@ public class ClientBuilder {
         return SSLConnectionSocketFactory.getSocketFactory();
     }
 
-    private SSLIOSessionStrategy sslSessionStrategy() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+    SSLIOSessionStrategy sslSessionStrategy() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
         if (sslCheckDisabled) {
             return new SSLIOSessionStrategy(trustAllSslContext(), NoopHostnameVerifier.INSTANCE);
         }
