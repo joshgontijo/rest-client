@@ -28,6 +28,7 @@ public class IdleConnectionMonitor extends Thread {
     void shutdown() {
         logger.info("Stopping idle client connection monitor");
         running.set(false);
+        interrupt();
     }
 
     @Override
@@ -54,7 +55,8 @@ public class IdleConnectionMonitor extends Thread {
                 }
             }
         } catch (InterruptedException ex) {
-            logger.warn("Idle client connection stopped abruptly");
+            Thread.currentThread().interrupt();
+            logger.info("Idle client connection monitor stopped");
             return;
         }
         logger.info("Idle client connection stopped gracefully");

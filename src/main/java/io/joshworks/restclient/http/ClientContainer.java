@@ -4,6 +4,8 @@ import io.joshworks.restclient.http.utils.ClientStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -19,8 +21,11 @@ public class ClientContainer {
     //Global monitor
     private static final IdleConnectionMonitor monitor = new IdleConnectionMonitor(clients::values);
 
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(ClientContainer::shutdown, "restclient-shutdown"));
+    }
+
     private ClientContainer() {
-        Runtime.getRuntime().addShutdownHook(new Thread(ClientContainer::shutdown));
     }
 
     static void addClient(RestClient client) {
@@ -42,14 +47,16 @@ public class ClientContainer {
     }
 
     public static synchronized void shutdown() {
-        for (Map.Entry<String, RestClient> clientEntry : clients.entrySet()) {
-            logger.info("Shutting down rest client, id: {}", clientEntry.getKey());
+        List<RestClient> snapshot = new ArrayList<>(clients.values());
+        for (RestClient client : snapshot) {
+            logger.info("Shutting down rest client, id: {}", client.id);
             try {
-                clientEntry.getValue().close();
+                client.close();
             } catch (Exception e) {
-                logger.error("Failed to close client '" + clientEntry.getKey() + "'", e);
+                logger.error("Failed to close client '" + client.id + "'", e);
             }
         }
+        clients.clear();
 
         monitor.shutdown();
     }

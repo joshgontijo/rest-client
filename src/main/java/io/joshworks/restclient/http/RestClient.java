@@ -38,6 +38,9 @@ import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.reactor.IOReactorException;
+import org.apache.http.pool.PoolStats;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.HashMap;
@@ -45,12 +48,14 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static io.joshworks.restclient.http.utils.Constants.PATH_SEPARATOR;
 
 public class RestClient implements Closeable {
 
+    private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
     private static final int IDLE_CONNECTION_TIMEOUT = 30;
 
     public final String id;
@@ -66,6 +71,7 @@ public class RestClient implements Closeable {
     private final CloseableHttpAsyncClient asyncClient;
     private final CloseableHttpClient syncClient;
     private final CookieStore cookieStore;
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     RestClient(String baseUrl,
                Map<String, Object> defaultHeaders,
@@ -163,7 +169,9 @@ public class RestClient implements Closeable {
     }
 
     public ClientStats stats() {
-        return new ClientStats(syncConnectionManager.getTotalStats(), asyncConnectionManager.getTotalStats());
+        PoolStats syncStats = syncConnectionManager == null ? null : syncConnectionManager.getTotalStats();
+        PoolStats asyncStats = asyncConnectionManager == null ? null : asyncConnectionManager.getTotalStats();
+        return new ClientStats(syncStats, asyncStats);
     }
 
     String resolveUrl(String... paths) {
@@ -200,17 +208,40 @@ public class RestClient implements Closeable {
      */
     @Override
     public void close() {
-        try {
-            if (syncClient != null) {
-                syncClient.close();
-                syncConnectionManager.close();
-            }
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
 
-            if (asyncClient != null && asyncClient.isRunning()) {
-                asyncClient.close();
+        if (syncClient != null) {
+            try {
+                syncClient.close();
+            } catch (Exception e) {
+                logger.warn("Failed to close synchronous HTTP client", e);
             }
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
+        }
+        if (syncConnectionManager != null) {
+            try {
+                syncConnectionManager.close();
+            } catch (Exception e) {
+                logger.warn("Failed to close synchronous connection manager", e);
+            }
+        }
+
+        if (asyncClient != null) {
+            try {
+                // Close even when the client was never started; this releases
+                // the IO reactor and its threads.
+                asyncClient.close();
+            } catch (Exception e) {
+                logger.warn("Failed to close asynchronous HTTP client", e);
+            }
+        }
+        if (asyncConnectionManager != null) {
+            try {
+                asyncConnectionManager.shutdown();
+            } catch (Exception e) {
+                logger.warn("Failed to close asynchronous connection manager", e);
+            }
         }
 
         ClientContainer.removeClient(this);
