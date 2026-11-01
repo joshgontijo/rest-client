@@ -51,7 +51,12 @@ public class ClientRequest {
         this.defaultHeaders = defaultHeaders;
     }
 
-    private static final String USER_AGENT = "rest-client/1.6.0";
+    private static final String USER_AGENT = userAgent();
+
+    private static String userAgent() {
+        String version = ClientRequest.class.getPackage().getImplementationVersion();
+        return "rest-client/" + (version == null ? "unknown" : version);
+    }
 
     private <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(
             final Class<T> responseClass,

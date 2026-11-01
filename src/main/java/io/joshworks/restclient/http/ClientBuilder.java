@@ -195,7 +195,17 @@ public class ClientBuilder {
     }
 
     public ClientBuilder defaultHeader(String key, String value) {
-        this.defaultHeaders.put(key, value);
+        return defaultHeader(key, (Object) value);
+    }
+
+    private ClientBuilder defaultHeader(String key, Object value) {
+        if (key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("Default header name must not be empty");
+        }
+        if (value == null) {
+            throw new IllegalArgumentException("Default header value must not be null for '" + key + "'");
+        }
+        this.defaultHeaders.put(key.trim(), value);
         return this;
     }
 
@@ -225,8 +235,7 @@ public class ClientBuilder {
     }
 
     public ClientBuilder defaultHeader(String key, long value) {
-        this.defaultHeaders.put(key, value);
-        return this;
+        return defaultHeader(key, (Object) value);
     }
 
     public ClientBuilder credentialProvider(CredentialsProvider provider) {

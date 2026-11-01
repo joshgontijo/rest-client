@@ -29,7 +29,6 @@ import io.joshworks.restclient.Constants;
 import io.joshworks.restclient.http.ClientRequest;
 import io.joshworks.restclient.http.HttpMethod;
 import io.joshworks.restclient.http.MediaType;
-import io.joshworks.restclient.http.utils.Base64Coder;
 import io.joshworks.restclient.http.utils.MimeMappings;
 import io.joshworks.restclient.http.utils.URLParamEncoder;
 import io.joshworks.restclient.request.body.Body;
@@ -39,6 +38,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +51,7 @@ import java.util.regex.Pattern;
 public class HttpRequest extends BaseRequest {
 
     private static final MimeMappings mappings = MimeMappings.builder().build();
+    private static final Pattern HEADER_NAME_PATTERN = Pattern.compile("[!#$%&'*+.^_`|~0-9A-Za-z-]+");
 
     private String url;
     protected Body body;
@@ -79,7 +80,12 @@ public class HttpRequest extends BaseRequest {
     }
 
     public HttpRequest basicAuth(String username, String password) {
-        header(HttpHeaders.AUTHORIZATION, "Basic " + Base64Coder.encodeString(username + ":" + password));
+        if (username == null || password == null) {
+            throw new IllegalArgumentException("Username and password must not be null");
+        }
+        String credentials = username + ":" + password;
+        String encoded = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+        header(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
         return this;
     }
 
@@ -96,12 +102,26 @@ public class HttpRequest extends BaseRequest {
     }
 
     public HttpRequest header(String name, String value) {
-        List<String> list = this.headers.get(name.trim());
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Header name must not be empty");
+        }
+        String headerName = name.trim();
+        if (!HEADER_NAME_PATTERN.matcher(headerName).matches()) {
+            throw new IllegalArgumentException("Invalid header name: " + name);
+        }
+        if (value == null) {
+            throw new IllegalArgumentException("Header value must not be null for '" + headerName + "'");
+        }
+        if (value.indexOf('\r') >= 0 || value.indexOf('\n') >= 0) {
+            throw new IllegalArgumentException("Header value must not contain line breaks: " + headerName);
+        }
+
+        List<String> list = this.headers.get(headerName);
         if (list == null) {
             list = new ArrayList<>();
         }
         list.add(value);
-        this.headers.put(name.trim(), list);
+        this.headers.put(headerName, list);
         return this;
     }
 
