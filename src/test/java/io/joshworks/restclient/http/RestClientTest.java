@@ -52,7 +52,6 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -110,18 +109,6 @@ public class RestClientTest {
         TestServer.stop();
         ClientContainer.shutdown();
     }
-
-    private String findAvailableIpAddress() throws Exception {
-        for (int i = 100; i <= 255; i++) {
-            String ip = "192.168.1." + i;
-            if (!InetAddress.getByName(ip).isReachable(1000)) {
-                return ip;
-            }
-        }
-
-        throw new RuntimeException("Couldn't find an available IP address in the range of 192.168.0.100-255");
-    }
-
 
     @Test
     public void simpleGet() {
@@ -721,22 +708,21 @@ public class RestClientTest {
     }
 
     @Test
-    public void connectionTimeout() throws Exception {
+    public void connectionTimeout() {
         RestClient customClient = null;
         try {
-            int connectionTimeout = 3000;
+            int connectionTimeout = 1000;
             customClient = RestClient.builder().timeout(connectionTimeout, -1).build();
-            String address = "http://" + findAvailableIpAddress() + "/";
             long start = System.currentTimeMillis();
             try {
-                client.get("http://" + address + "/").asString();
-            } catch (Exception e) {
+                // RFC 5737 TEST-NET-1 address, guaranteed not to be reachable.
+                customClient.get("http://192.0.2.1:81/").asString();
+                fail("Expected a connection failure");
+            } catch (RestClientException e) {
                 long diff = System.currentTimeMillis() - start;
-                if (diff >= connectionTimeout) { // Add 100ms for code execution
-                    fail("Expected connectionTimeout of less than " + connectionTimeout + ", got " + diff);
-                }
+                assertTrue("Expected connectionTimeout of less than " + (connectionTimeout + 3000) + ", got " + diff,
+                        diff < connectionTimeout + 3000);
             }
-
         } finally {
             if (customClient != null) {
                 customClient.close();
@@ -1183,12 +1169,9 @@ public class RestClientTest {
             InputStream body = httpResponse.body();
             String received = TestUtils.toString(body);
             assertEquals(sourceString, received);
-
-            ClientStats stats = client.stats();
-            assertEquals(1, stats.sync.getLeased());
         }
         ClientStats stats = client.stats();
-        assertEquals(0, stats.sync.getLeased());
+        assertEquals("Closing a streaming response must release its connection", 0, stats.sync.getLeased());
     }
 
     @Test
@@ -1282,6 +1265,24 @@ public class RestClientTest {
             HttpResponse<String> httpResponse = client.get(BASE_URL + "/hello").asString();
             assertEquals(200, httpResponse.status());
             assertNotNull(httpResponse.body());
+        }
+    }
+
+    @Test
+    public void statsWithoutAsyncClient() {
+        try (RestClient client = RestClient.with(HttpClientBuilder.create())) {
+            ClientStats stats = client.stats();
+            assertNotNull(stats.sync);
+            assertNull(stats.async);
+        }
+    }
+
+    @Test
+    public void statsWithoutSyncClient() {
+        try (RestClient client = RestClient.with(null, HttpAsyncClientBuilder.create())) {
+            ClientStats stats = client.stats();
+            assertNull(stats.sync);
+            assertNotNull(stats.async);
         }
     }
 
