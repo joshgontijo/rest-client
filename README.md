@@ -1,23 +1,22 @@
 # RestClient - [Unirest](https://github.com/Mashape/unirest-java) fork
 
 This fork is intended to fix the bugs left by the original authors, improve the API, and provide continuous support.
-Improvements, new ideas, and bug reports are always welcome. The  
-
+Improvements, new ideas, and bug reports are always welcome.
 
 [![License][license-image]][license-url]
-
 
 ## Features
 
 Apart from the features provided by the original Unirest Java, this fork also has:
 
 * Updated API to make use of Java 8
-* Major Bug fixes
+* Major bug fixes
 * Support for multiple independent clients
 * General API improvements
 * Updated async requests to use Java 8 CompletableFuture
 * Lazy response body parsing
-* Default Gson parser 
+* Default Gson parser
+* TLS certificate and hostname verification enabled by default
 
 
 ### Maven
@@ -52,12 +51,40 @@ HttpResponse<Json> jsonResponse = client.post("http://httpbin.org/post")
   .asJson();
 ```
 
+### Reading the response
+
+`asString()`, `asJson()`, `asObject(...)` and `asBinary()` all return an
+`HttpResponse`. The body is parsed lazily, so it can be read in the
+representation that is most convenient for the response.
+
+```java
+
+HttpResponse<String> response = client.get("http://my-api.com/v1/users").asString();
+
+int status = response.status();
+boolean successful = response.successful();
+Headers headers = response.headers();
+String body = response.body();
+
+```
+
+Binary responses expose an `InputStream` and must be closed to release the
+connection back to the pool:
+
+```java
+
+try (HttpResponse<InputStream> response = client.get("http://my-api.com/file").asBinary()) {
+    // consume response.body()
+}
+
+```
+
 ### Base url
 
 ```java
 
 RestClient client = RestClient.builder().baseUrl("http://my-api.com/v1").build();
-String response = client.get("/some-resource").asString();
+String response = client.get("/some-resource").asString().body();
 
 ```
 
@@ -66,7 +93,7 @@ Unirest provides the same static methods as the original version. It's ideal for
 
 ```java
 
-String response = Unirest.get("http://my-api.com/v1").asString();
+String response = Unirest.get("http://my-api.com/v1").asString().body();
 
 ```
 
@@ -76,15 +103,16 @@ You can either provide a varargs path. Or you can use a template and then use `.
 ```java
 
 //Sends a request to http://my-api.com/v1/users
-String response = client.post("http://my-api.com", "v1", "users").asString();
+String response = client.post("http://my-api.com", "v1", "users").asString().body();
 
 //Alternatively
 
 //Also Sends a request to http://my-api.com/v1/users
-String response = client.get("http://my-api.com/{verion}/{endpoint}")
-  .routeParam("verion", "v1")
+String response = client.get("http://my-api.com/{version}/{endpoint}")
+  .routeParam("version", "v1")
   .routeParam("endpoint", "users")
-  .asString();
+  .asString()
+  .body();
 
 ```
 
@@ -97,7 +125,7 @@ This also gives you the ability to compose multiple requests in a convenient way
 client.get("http://my-api.com/v1/hello")
         .asStringAsync()
         .thenAccept(resp -> {
-            System.out.println(resp.body())
+            System.out.println(resp.body());
          })
          .exceptionally(e -> {
             e.printStackTrace();
@@ -127,9 +155,9 @@ client.post("http://my-service.com/login")
 ```
 
 ### Serialization
-Before using `asObject(Class)` or `.body(Object)`, is necessary to provide a custom implementation of the `ObjectMapper` interface.
-This should be done for each client.
-Json is supported out-of-the-box, so there's no need to register any other json mapper unless you want a custom configuration.
+JSON is supported out of the box by `asJson()`, `asObject(Class)` and `.body(Object)`.
+For other content types, register a custom `ObjectMapper` implementation.
+Mappers are registered globally and can be overridden per media type.
 Here's how to configure a new ObjectMapper:
 
 ```java
@@ -157,6 +185,34 @@ HttpResponse<User> response = client.post("http://my-api.com/echo-xml")
 
 ```
 
+### TLS
+
+TLS certificates and hostnames are verified by default. To use a custom trust
+store, provide an `SSLContext`:
+
+```java
+
+SSLContext sslContext = SSLContextBuilder.create()
+        .loadTrustMaterial(new File("my-truststore.p12"), "changeit".toCharArray())
+        .build();
+
+RestClient client = RestClient.builder()
+        .sslContext(sslContext)
+        .build();
+
+```
+
+`disableSSLCheck()` disables both certificate and hostname verification. It
+makes the client vulnerable to man-in-the-middle attacks and should only be
+used for local development or tests:
+
+```java
+
+// Do not use in production
+RestClient client = RestClient.builder().disableSSLCheck().build();
+
+```
+
 ### Client stats
 The API also exposes HttpClient's PoolStats, so you can inspect the usage of each client.
 
@@ -181,7 +237,7 @@ When exiting the application, you can use the `ClientContainer` to release all t
 
 ```java
 //If a client is no longer needed and you want to dispose its resources
-client.shutdown();
+client.close();
 
 //When your application is shutting down:
 //Closes all client connections and the monitor
@@ -189,5 +245,5 @@ ClientContainer.shutdown();
 
 ```
 
-[license-url]: https://github.com/josueeduardo/rest-client/blob/master/LICENSE
+[license-url]: https://github.com/joshgontijo/rest-client/blob/master/LICENSE
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg?style=flat

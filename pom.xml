@@ -34,11 +34,11 @@
     <name>Unirest java</name>
     <description>Rest Java client based on Unirest</description>
 
-    <url>https://github.com/josueeduardo/rest-client</url>
+    <url>https://github.com/joshgontijo/rest-client</url>
     <scm>
-        <connection>https://github.com/josueeduardo/rest-client.git</connection>
-        <developerConnection>https://github.com/josueeduardo/rest-client.git</developerConnection>
-        <url>https://github.com/josueeduardo/rest-client</url>
+        <connection>https://github.com/joshgontijo/rest-client.git</connection>
+        <developerConnection>https://github.com/joshgontijo/rest-client.git</developerConnection>
+        <url>https://github.com/joshgontijo/rest-client</url>
     </scm>
     <developers>
         <developer>
