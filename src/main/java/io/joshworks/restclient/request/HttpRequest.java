@@ -66,15 +66,20 @@ public class HttpRequest extends BaseRequest {
     }
 
     public HttpRequest routeParam(String name, String value) {
-        Matcher matcher = Pattern.compile("\\{" + name + "\\}").matcher(url);
-        int count = 0;
-        while (matcher.find()) {
-            count++;
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Route parameter name must not be empty");
         }
-        if (count == 0) {
-            throw new RuntimeException("Can't find route parameter name \"" + name + "\"");
+        if (value == null) {
+            throw new IllegalArgumentException("Route parameter '" + name + "' must not be null");
         }
-        this.url = url.replaceAll("\\{" + name + "\\}", URLParamEncoder.encode(value));
+
+        Matcher matcher = Pattern.compile("\\{" + Pattern.quote(name) + "\\}").matcher(url);
+        if (!matcher.find()) {
+            throw new IllegalArgumentException("Can't find route parameter name \"" + name + "\"");
+        }
+        // Quote the replacement: '$' and '\' in the encoded value must not be
+        // interpreted as regex replacement groups.
+        this.url = matcher.replaceAll(Matcher.quoteReplacement(URLParamEncoder.encode(value)));
         return this;
     }
 
@@ -144,6 +149,9 @@ public class HttpRequest extends BaseRequest {
     }
 
     public HttpRequest queryString(String name, Object value) {
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Query parameter name must not be empty");
+        }
         StringBuilder queryString = new StringBuilder();
         if (this.url.contains(Constants.QUESTION_MARK)) {
             queryString.append(Constants.AMPERSAND);

@@ -21,9 +21,8 @@ import org.apache.http.nio.entity.NByteArrayEntity;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -174,6 +173,29 @@ public class ClientRequest {
         }
     }
 
+    /**
+     * Parses the request URL without decoding its path or query. Decoding and
+     * re-encoding the whole path changed the meaning of reserved characters
+     * such as {@code %2F} and {@code +}.
+     */
+    private URI toUri(String url) {
+        try {
+            return new URI(url);
+        } catch (URISyntaxException first) {
+            // URLs containing unescaped spaces were historically accepted.
+            try {
+                return new URI(url.replace(" ", "%20"));
+            } catch (URISyntaxException second) {
+                try {
+                    URL reqUrl = new URL(url);
+                    return new URI(reqUrl.getProtocol(), reqUrl.getUserInfo(), reqUrl.getHost(), reqUrl.getPort(), reqUrl.getPath(), reqUrl.getQuery(), reqUrl.getRef());
+                } catch (Exception e) {
+                    throw new RestClientException("Invalid URL: " + url, e);
+                }
+            }
+        }
+    }
+
     private HttpRequestBase prepareRequest(HttpRequest httpRequest, boolean async) {
 
         if (defaultHeaders != null) {
@@ -192,22 +214,7 @@ public class ClientRequest {
             httpRequest.header(HttpHeaders.ACCEPT_ENCODING, Constants.GZIP);
         }
 
-        String urlToRequest;
-        try {
-            URL reqUrl = new URL(httpRequest.getUrl());
-            URI uri = new URI(reqUrl.getProtocol(), reqUrl.getUserInfo(), reqUrl.getHost(), reqUrl.getPort(), URLDecoder.decode(reqUrl.getPath(), StandardCharsets.UTF_8.name()), "", reqUrl.getRef());
-            urlToRequest = uri.toURL().toString();
-            if (reqUrl.getQuery() != null && !reqUrl.getQuery().trim().equals("")) {
-                if (!urlToRequest.substring(urlToRequest.length() - 1).equals(Constants.QUESTION_MARK)) {
-                    urlToRequest += Constants.QUESTION_MARK;
-                }
-                urlToRequest += reqUrl.getQuery();
-            } else if (urlToRequest.substring(urlToRequest.length() - 1).equals(Constants.QUESTION_MARK)) {
-                urlToRequest = urlToRequest.substring(0, urlToRequest.length() - 1);
-            }
-        } catch (Exception e) {
-            throw new RestClientException(e);
-        }
+        String urlToRequest = toUri(httpRequest.getUrl()).toASCIIString();
 
         HttpRequestBase reqObj = null;
         switch (httpRequest.getHttpMethod()) {

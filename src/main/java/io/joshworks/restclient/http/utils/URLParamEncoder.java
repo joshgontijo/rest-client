@@ -25,28 +25,49 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package io.joshworks.restclient.http.utils;
 
+import java.nio.charset.StandardCharsets;
+
 public class URLParamEncoder {
 
+    private static final char[] HEX = "0123456789ABCDEF".toCharArray();
+
+    private URLParamEncoder() {
+    }
+
+    /**
+     * Percent-encodes a value using UTF-8 so it can be safely used as a path
+     * segment. Only RFC 3986 unreserved characters are left untouched.
+     *
+     * @param input the value to encode
+     * @return the encoded value
+     */
     public static String encode(String input) {
-        StringBuilder resultStr = new StringBuilder();
-        for (char ch : input.toCharArray()) {
-            if (isUnsafe(ch)) {
-                resultStr.append('%');
-                resultStr.append(toHex(ch / 16));
-                resultStr.append(toHex(ch % 16));
+        if (input == null) {
+            throw new IllegalArgumentException("URL parameter value must not be null");
+        }
+
+        byte[] bytes = input.getBytes(StandardCharsets.UTF_8);
+        StringBuilder result = new StringBuilder(bytes.length * 3);
+        for (byte value : bytes) {
+            int ch = value & 0xFF;
+            if (isUnreserved(ch)) {
+                result.append((char) ch);
             } else {
-                resultStr.append(ch);
+                result.append('%');
+                result.append(HEX[ch >>> 4]);
+                result.append(HEX[ch & 0x0F]);
             }
         }
-        return resultStr.toString();
+        return result.toString();
     }
 
-    private static char toHex(int ch) {
-        return (char) (ch < 10 ? '0' + ch : 'A' + ch - 10);
+    private static boolean isUnreserved(int ch) {
+        return (ch >= 'a' && ch <= 'z')
+                || (ch >= 'A' && ch <= 'Z')
+                || (ch >= '0' && ch <= '9')
+                || ch == '-'
+                || ch == '.'
+                || ch == '_'
+                || ch == '~';
     }
-
-    private static boolean isUnsafe(char ch) {
-        return ch > 128 || ch < 0 || " %$&+,/:;=?@<>#%".indexOf(ch) >= 0;
-    }
-
 }
